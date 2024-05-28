@@ -8,6 +8,12 @@ authors = [
 dependencies = [
     "rich>=13.7.1",
     "click>=8.1.7",
+    "ipdb>=0.13.13",
+    "tomli>=2.0.1",
+    "tomli-w>=1.0.0",
+    "atlassian-python-api>=3.41.13",
+    "ipdb>=0.13.13",
+    "textual>=0.63.5",
 ]
 readme = "README.md"
 requires-python = ">= 3.8"
@@ -21,10 +27,16 @@ build-backend = "hatchling.build"
 
 [tool.rye]
 managed = true
-dev-dependencies = []
+dev-dependencies = [
+    "pytest>=8.2.1",
+    "pytest-cov>=5.0.0",
+]
 
 [tool.hatch.metadata]
 allow-direct-references = true
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/bb"]
+
+[tool.pytest.ini_options]
+addopts = "--cov=bb"
