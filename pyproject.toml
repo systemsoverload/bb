@@ -1,14 +1,13 @@
 [project]
 name = "bb"
-version = "0.1.0"
-description = "Add your description here"
+version = "0.1.1"
+description = "Atlassian Bitbucket Cloud CLI"
 authors = [
     { name = "tjk", email = "tkells@atlassian.com" }
 ]
 dependencies = [
     "rich>=13.7.1",
     "click>=8.1.7",
-    "ipdb>=0.13.13",
     "tomli>=2.0.1",
     "tomli-w>=1.0.0",
     "ipdb>=0.13.13",
@@ -32,6 +31,12 @@ dev-dependencies = [
     "pytest>=8.2.1",
     "pytest-cov>=5.0.0",
 ]
+
+[tool.rye.scripts]
+lint = { chain = ["lint:isort", "lint:black", "lint:flake8" ] }
+"lint:isort" = "isort . --check"
+"lint:black" = "black --check src"
+"lint:flake8" = "flake8 src"
 
 [tool.black]
 line-length = 120
