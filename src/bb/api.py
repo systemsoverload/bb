@@ -11,7 +11,7 @@ def get_prs(full_slug: str, _all: bool = False, reviewing: bool = False, mine: b
     q = None
     uuid = f'"{conf.get("auth.uuid")}"'
     if _all:
-        q = f'state="OPEN"'
+        q = 'state="OPEN"'
     elif reviewing:
         q = f'state="OPEN" AND reviewers.uuid={uuid}'
     elif mine:
@@ -41,3 +41,12 @@ def get_prs(full_slug: str, _all: bool = False, reviewing: bool = False, mine: b
     )
 
     return res.json()["values"]
+
+
+def get_auth_user(username: str, app_password: str) -> requests.Response:
+    """Get currently authenticated user data"""
+    res = requests.get(
+        f"{BASE_URL}/2.0/user",
+        auth=(username, app_password),
+    )
+    return res

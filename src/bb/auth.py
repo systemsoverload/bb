@@ -2,10 +2,10 @@ import os
 from pathlib import Path
 
 import click
-from atlassian.bitbucket import Cloud
 from requests.exceptions import HTTPError
 from rich import print
 
+from bb.api import get_auth_user
 from bb.config import BBConfig
 
 # TODO - Make this configurable
@@ -30,9 +30,9 @@ def login(username, app_password):
     if not app_password:
         app_password = click.prompt("App password", hide_input=True)
 
-    bitbucket = Cloud(username=username, password=app_password)
     try:
-        res = bitbucket.request("GET", "user")
+        res = get_auth_user(username=username, app_password=app_password)
+        res.raise_for_status()
 
         conf = BBConfig()
 
@@ -40,6 +40,7 @@ def login(username, app_password):
         conf.update("auth.app_password", app_password)
         conf.update("auth.uuid", res.json().get("uuid"))
         conf.update("auth.account_id", res.json().get("account_id"))
+
         print(f":beaming_face_with_smiling_eyes: Successfully logged in as [bold]{username}")
         conf.write()
     except HTTPError as e:
@@ -53,10 +54,7 @@ def login(username, app_password):
 def logout():
     # Remove saved app password
     conf = BBConfig()
-    conf.delete("auth.username")
-    conf.delete("auth.app_password")
-    conf.delete("auth.uuid")
-    conf.delete("auth.account_id")
+    conf.delete("auth")
     conf.write()
     print("[bold]Successfully removed saved credentials")
 
@@ -70,9 +68,10 @@ def status():
         print(":x: [bold]Not logged in")
         return
 
-    bitbucket = Cloud(username=conf.get("auth.username"), password=conf.get("auth.app_password"))
     try:
-        res = bitbucket.request("GET", "user")
+        res = get_auth_user(username=conf.get("auth.username"), app_password=conf.get("auth.app_password"))
+        res.raise_for_status()
+
         scopes = [f"'{s}'" for s in res.headers["x-oauth-scopes"].split(",")]
         msg = ["[bold]bitbucket.org[/]"]
         msg.append(f"- Logged in to bitbucket.org account [bold]{conf.get('auth.username')}[/]")
