@@ -21,14 +21,13 @@ class BBConfig:
         with open(CONF_PATH, "rb+") as f:
             self._conf = tomli.load(f)
 
-
     def update(self, path, value):
         """
         >> BBConfig().update("auth.app_password", "1234")
         >> BBConfig().update("arbitrary", "abc123")
         """
         # XXX - This is fairly brittle and cant handle nested dictionaries
-        key, *subkey = path.split('.')
+        key, *subkey = path.split(".")
         setting = self._conf.get(key)
         if subkey:
             if setting:
@@ -41,7 +40,7 @@ class BBConfig:
 
     def delete(self, path):
         # XXX - This is fairly brittle and cant handle nested dictionaries
-        key, *subkey = path.split('.')
+        key, *subkey = path.split(".")
         if rget(self._conf, path):
             if subkey:
                 del self._conf[key][subkey[0]]
@@ -49,8 +48,9 @@ class BBConfig:
                 del self._conf[path]
 
     T = TypeVar("T")
-    def get(self, path, default: T='') -> T:
-        res =  rget(self._conf, path, default=default)
+
+    def get(self, path, default: T = "") -> T:
+        res = rget(self._conf, path, default=default)
 
         return res if res else default
 
