@@ -1,4 +1,5 @@
 import click
+from rich import print
 
 from bb.config import BBConfig
 
