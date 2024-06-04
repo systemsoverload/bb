@@ -25,8 +25,10 @@ def rget(dct, keys, default=None, getter=None):
     elif isinstance(keys, str):
         keys = keys.split(".")
 
-    if getter is None:
-        getter = lambda a, i: (a.get(i, default) if hasattr(a, "get") else default)  # noqa: NVR1 (AUTO)
+    def default_getter(a, i):
+        return a.get(i, default) if hasattr(a, "get") else default
+
+    getter = getter or default_getter
 
     return reduce(getter, keys, dct)
 
@@ -55,10 +57,10 @@ def repo_context_command(fn):
     def wrapper(ctx, *args, **kwargs):
         try:
             repo_slug = get_current_repo_slug().unwrap()
-        except CalledProcessError as e:
+        except CalledProcessError:
             print("[bold][red]Command called outside of the context of a git repository")
             return
-        except RuntimeError as e:
+        except RuntimeError:
             print("[red][bold]Error:[/] Repository has no bitbucket remotes")
             return
         return ctx.invoke(fn, repo_slug, *args, **kwargs)
