@@ -8,6 +8,7 @@ from bb.config import BBConfig
 def alias():
     pass
 
+
 @alias.command()
 @click.argument("alias_name")
 @click.argument("cmd")
