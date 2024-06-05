@@ -1,11 +1,12 @@
-import shlex
 from functools import reduce, update_wrapper
-from subprocess import CalledProcessError, check_output
+from subprocess import CalledProcessError
 
 import click
 from rich import print
 
-from bb.typing import Err, Ok, Result
+
+class IPWhitelistException(Exception):
+    pass
 
 
 def rget(dct, keys, default=None, getter=None):
@@ -33,25 +34,9 @@ def rget(dct, keys, default=None, getter=None):
     return reduce(getter, keys, dct)
 
 
-def get_current_repo_slug() -> Result:
-    try:
-        out = (
-            check_output(shlex.split("git remote -v"), universal_newlines=True)
-            .splitlines()[0]
-            .replace("\t", " ")
-            .split(" ")[1]
-            .strip()
-        )
-        if "bitbucket" in out:
-            return Ok(out.split(":")[-1].strip(".git"))
-        else:
-            return Err(RuntimeError("No repository detected"))
-    except CalledProcessError as e:
-        return Err(e)
-
-
 def repo_context_command(fn):
     "Ensure command execution is in context of bb repo"
+    from bb.git import get_current_repo_slug
 
     @click.pass_context
     def wrapper(ctx, *args, **kwargs):
