@@ -5,13 +5,8 @@ from rich.prompt import Prompt
 from rich.table import Table
 
 from bb.api import WEB_BASE_URL, create_pr, get_prs
-from bb.git import (
-    IPWhitelistException,
-    get_branch,
-    get_current_branch,
-    get_default_branch,
-    push_branch,
-)
+from bb.git import (IPWhitelistException, get_branch, get_current_branch,
+                    get_default_branch, push_branch)
 from bb.utils import repo_context_command
 
 

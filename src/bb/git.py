@@ -62,6 +62,6 @@ def get_default_branch() -> Result:
         out = check_output(
             shlex.split("git symbolic-ref refs/remotes/origin/HEAD --short"), universal_newlines=True, stderr=STDOUT
         )
-        return Ok(out.strip().split('/')[-1])
+        return Ok(out.strip().split("/")[-1])
     except CalledProcessError as e:
         return Err(e)

@@ -49,10 +49,11 @@ def get_prs(full_slug: str, _all: bool = False, reviewing: bool = False, mine: b
         if exc.response.status_code == 403 and "whitelist" in exc.response.content.decode(
             exc.response.encoding or "utf-8"
         ):
-            return Err(IPWhitelistException("[bold red] 403 fetching pull requests, ensure your IP has been whitelisted"))
+            return Err(
+                IPWhitelistException("[bold red] 403 fetching pull requests, ensure your IP has been whitelisted")
+            )
         else:
             return Err(exc)
-
 
     return Ok(res.json()["values"])
 
@@ -68,12 +69,12 @@ def create_pr(full_slug: str, title: str, src: str, dest: str, description: str,
     }
 
     if description:
-        data["description"] =  description
+        data["description"] = description
 
     res = requests.post(
         f"{BASE_URL}/2.0/repositories/{full_slug}/pullrequests",
         auth=(conf.get("auth.username"), conf.get("auth.app_password")),
-        json=data
+        json=data,
     )
 
     try:
@@ -82,7 +83,6 @@ def create_pr(full_slug: str, title: str, src: str, dest: str, description: str,
         return Err(exc)
 
     return Ok(res)
-
 
 
 def get_auth_user(username: str, app_password: str) -> Result:
@@ -98,5 +98,5 @@ def get_auth_user(username: str, app_password: str) -> Result:
         return Err(e)
 
     ret = res.json()
-    ret['headers'] = res.headers
+    ret["headers"] = res.headers
     return Ok(ret)
