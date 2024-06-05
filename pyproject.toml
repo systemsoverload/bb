@@ -34,7 +34,7 @@ dev-dependencies = [
 
 [tool.rye.scripts]
 lint = { chain = ["lint:isort", "lint:black", "lint:flake8" ] }
-"lint:isort" = "isort . --check"
+"lint:isort" = "isort src --check"
 "lint:black" = "black --check src"
 "lint:flake8" = "flake8 src"
 
