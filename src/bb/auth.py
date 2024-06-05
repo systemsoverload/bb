@@ -31,8 +31,7 @@ def login(username, app_password):
         app_password = click.prompt("App password", hide_input=True)
 
     try:
-        res = get_auth_user(username=username, app_password=app_password)
-        res.raise_for_status()
+        res = get_auth_user(username=username, app_password=app_password).unwrap()
 
         conf = BBConfig()
 
@@ -69,13 +68,12 @@ def status():
         return
 
     try:
-        res = get_auth_user(username=conf.get("auth.username"), app_password=conf.get("auth.app_password"))
-        res.raise_for_status()
+        res = get_auth_user(username=conf.get("auth.username"), app_password=conf.get("auth.app_password")).unwrap()
 
-        scopes = [f"'{s}'" for s in res.headers["x-oauth-scopes"].split(",")]
+        scopes = [f"'{s}'" for s in res["headers"]["x-oauth-scopes"].split(",")]
         msg = ["[bold]bitbucket.org[/]"]
         msg.append(f"- Logged in to bitbucket.org account [bold]{conf.get('auth.username')}[/]")
-        msg.append(f"- Account status: {res.json().get('account_status')}")
+        msg.append(f"- Account status: {res.get('account_status')}")
         app_password = conf.get("auth.app_password")
         msg.append(f"- App password {app_password[0:4]}{'*' * (len(app_password) - 4)}")
         msg.append(f"- Scopes: {scopes}")
