@@ -11,6 +11,7 @@ from bb.utils import repo_context_command
 
 class AliasedGroup(click.Group):
     """Enable dynamic dispatch to support aliases via `bb alias set`"""
+
     def get_command(self, ctx, cmd_name):
         rv = click.Group.get_command(self, ctx, cmd_name)
         if rv is not None:
