@@ -4,8 +4,8 @@ from typing import Optional
 
 from rich.console import Console
 
+from bb.exceptions import GitPushRejectedException, IPWhitelistException
 from bb.typing import Err, Ok, Result
-from bb.utils import IPWhitelistException
 
 
 def get_current_repo_slug() -> Result:
@@ -41,6 +41,8 @@ def push_branch(branch_name: Optional[str] = None) -> Result:
             out = check_output(shlex.split(f"git push origin {branch_name}"), universal_newlines=True, stderr=STDOUT)
         return Ok(out.strip())
     except CalledProcessError as e:
+        if "[rejected]" in e.output:
+            return Err(GitPushRejectedException(e.output))
         # TODO - This probably needs to be used everywhere that attempts to interact with bb remotes
         if "whitelist your IP" in e.output:
             return Err(IPWhitelistException(e.output))
@@ -63,5 +65,13 @@ def get_default_branch() -> Result:
             shlex.split("git symbolic-ref refs/remotes/origin/HEAD --short"), universal_newlines=True, stderr=STDOUT
         )
         return Ok(out.strip().split("/")[-1])
+    except CalledProcessError as e:
+        return Err(e)
+
+
+def get_core_editor() -> Result:
+    try:
+        out = check_output(shlex.split("git config --get core.editor"), universal_newlines=True, stderr=STDOUT)
+        return Ok(out.strip())
     except CalledProcessError as e:
         return Err(e)

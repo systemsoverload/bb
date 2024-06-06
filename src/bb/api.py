@@ -1,8 +1,8 @@
 import requests
 
 from bb.config import BBConfig
+from bb.exceptions import IPWhitelistException
 from bb.typing import Err, Ok, Result
-from bb.utils import IPWhitelistException
 
 BASE_URL = "https://api.bitbucket.org"
 WEB_BASE_URL = "https://bitbucket.org"

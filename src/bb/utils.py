@@ -4,9 +4,7 @@ from subprocess import CalledProcessError
 import click
 from rich import print
 
-
-class IPWhitelistException(Exception):
-    pass
+from bb.git import get_current_repo_slug
 
 
 def rget(dct, keys, default=None, getter=None):
@@ -36,7 +34,6 @@ def rget(dct, keys, default=None, getter=None):
 
 def repo_context_command(fn):
     "Ensure command execution is in context of bb repo"
-    from bb.git import get_current_repo_slug
 
     @click.pass_context
     def wrapper(ctx, *args, **kwargs):
