@@ -1,12 +1,19 @@
 import click
+from requests import HTTPError
 from rich import print
 from rich.console import Console
 from rich.prompt import Prompt
 from rich.table import Table
 
 from bb.api import WEB_BASE_URL, create_pr, get_prs
-from bb.git import (IPWhitelistException, get_branch, get_current_branch,
-                    get_default_branch, push_branch)
+from bb.git import (
+    GitPushRejectedException,
+    IPWhitelistException,
+    get_branch,
+    get_current_branch,
+    get_default_branch,
+    push_branch,
+)
 from bb.utils import repo_context_command
 
 
@@ -106,7 +113,8 @@ def create(repo_slug, title, description, close_source_branch, src, dest):
     # If branch not pushed, do it now
     try:
         push_branch(src).unwrap()
-    except IPWhitelistException as e:
+    except (GitPushRejectedException, IPWhitelistException) as e:
+        print(f"[bold red]Error pushing {src}")
         print(f"[bold red]{e}")
         return
 
@@ -119,6 +127,10 @@ def create(repo_slug, title, description, close_source_branch, src, dest):
     if not description:
         description = Prompt.ask("[bold]Description (enter to default to generated description)")
 
-    with Console().status("Creating pull request"):
-        res = create_pr(repo_slug, title, src, dest, description, close_source_branch).unwrap()
-    print(f"Successfully created PR - {res.json()['links']['html']['href']}")
+    try:
+        with Console().status("Creating pull request"):
+            res = create_pr(repo_slug, title, src, dest, description, close_source_branch).unwrap()
+        print(f"Successfully created PR - {res.json()['links']['html']['href']}")
+    except HTTPError as exc:
+        # TODO - Handle possible errors here - eg 400 if no diff commits in branch
+        print(f"[bold red]{exc.response.content}")
