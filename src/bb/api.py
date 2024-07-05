@@ -58,14 +58,16 @@ def get_prs(full_slug: str, _all: bool = False, reviewing: bool = False, mine: b
     return Ok(res.json()["values"])
 
 
-def create_pr(full_slug: str, title: str, src: str, dest: str, description: str, close_source_branch: str) -> Result:
+def create_pr(full_slug: str, title: str, src: str, dest: str, description: str, close_source_branch: str, reviewers: list) -> Result:
     conf = BBConfig()
+
 
     data = {
         "title": title,
         "source": {"branch": {"name": src}},
         "destination": {"branch": {"name": dest}},
         "close_source_branch": close_source_branch,
+        "reviewers": [{"uuid": r.get('uuid')} for r in reviewers if r.get('uuid')]
     }
 
     if description:
@@ -100,3 +102,49 @@ def get_auth_user(username: str, app_password: str) -> Result:
     ret = res.json()
     ret["headers"] = res.headers
     return Ok(ret)
+
+
+def get_default_description(full_slug: str, src: str, dest: str) -> Result:
+    conf = BBConfig()
+    url = f"{BASE_URL}/internal/repositories/{full_slug}/pullrequests/default-messages/{src}%0D{dest}?raw=true"
+    res = requests.get(
+        url,
+        auth=(conf.get("auth.username"), conf.get("auth.app_password")),
+    )
+
+    try:
+        res.raise_for_status()
+    except Exception as exc:
+        return Err(exc)
+
+    return Ok(res)
+
+def get_recommended_reviewers(full_slug: str) -> Result:
+    conf = BBConfig()
+    url = "https://bitbucket.org/!api/internal/repositories/bitbucket/core/recommended-reviewers"
+    res = requests.get(
+        url,
+        auth=(conf.get("auth.username"), conf.get("auth.app_password")),
+    )
+
+    try:
+        res.raise_for_status()
+    except Exception as exc:
+        return Err(exc)
+
+    return Ok(res)
+
+def get_codeowners(full_slug: str, src: str, dest: str) -> Result:
+    conf = BBConfig()
+    url = f"{BASE_URL}/internal/repositories/{full_slug}/codeowners/{src}..{dest}"
+    res = requests.get(
+        url,
+        auth=(conf.get("auth.username"), conf.get("auth.app_password")),
+    )
+
+    try:
+        res.raise_for_status()
+    except Exception as exc:
+        return Err(exc)
+
+    return Ok(res)

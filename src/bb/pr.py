@@ -1,16 +1,23 @@
 import click
-from requests import HTTPError
+from requests.exceptions import HTTPError
 from rich import print
 from rich.console import Console
-from rich.prompt import Prompt
 from rich.table import Table
 
-from bb.api import WEB_BASE_URL, create_pr, get_prs
+from bb.api import (
+    WEB_BASE_URL,
+    create_pr,
+    get_codeowners,
+    get_default_description,
+    get_prs,
+)
 from bb.git import (
     GitPushRejectedException,
     IPWhitelistException,
+    edit_tmp_file,
     get_branch,
     get_current_branch,
+    get_current_diff_to_main,
     get_default_branch,
     push_branch,
 )
@@ -80,7 +87,7 @@ def list(repo_slug, _all, mine, reviewing):
             if p["approved"]:
                 approvers.append(p["user"]["display_name"])
         table.add_row(
-            f"[link={WEB_BASE_URL}{repo_slug}/pull-requests/{pr['id']}]{pr['id']}[/link]",
+            f"[link={WEB_BASE_URL}/{repo_slug}/pull-requests/{pr['id']}]{pr['id']}[/link]",
             pr["author"]["display_name"],
             pr["title"],
             ",".join(approvers),
@@ -90,15 +97,15 @@ def list(repo_slug, _all, mine, reviewing):
 
 
 @pr.command()
-@click.option("--title", "-t", help="PR title")
-@click.option("--description", "-d", help="PR description")
+# TODO - Should we allow manual inputs here? Do we need to prompt the user for this data if the API call fails?
+# @click.option("--title", "-t", help="PR title")
+# @click.option("--description", "-d", help="PR description")
 @click.option("--src", "-s", help="Source branch for pull request (default [current branch])")
 @click.option("--dest", "-d", help="Destination branch for pull request (default [current branch])")
 @click.option("--close-source-branch", "-c", is_flag=True, default=True, help="Close source branch after merge [bool]")
 @repo_context_command
-def create(repo_slug, title, description, close_source_branch, src, dest):
+def create(repo_slug, close_source_branch, src, dest):
     # TODO - Check if the PR exists on BB already
-
     if not src:
         src = get_current_branch().unwrap()
     else:
@@ -110,6 +117,10 @@ def create(repo_slug, title, description, close_source_branch, src, dest):
 
     dest = dest or get_default_branch().unwrap()
 
+    print(f"Creating new pull request for [bold blue]{src}[/] into [bold blue]{dest}[/] for {repo_slug}")
+    if not get_current_diff_to_main().unwrap():
+        return print("[bold red]Aborting - no changes on local branch")
+
     # If branch not pushed, do it now
     try:
         push_branch(src).unwrap()
@@ -118,19 +129,34 @@ def create(repo_slug, title, description, close_source_branch, src, dest):
         print(f"[bold red]{e}")
         return
 
-    # TODO - Fetch description template and do something cool with it?
+    # Fetch the generated default description from BB API and open configured editor
+    dd_res = get_default_description(repo_slug, src, dest).unwrap().json()
+    try:
+        title, description = edit_tmp_file(f"{dd_res['title']}\n------\n{dd_res['description']}").unwrap()
+    except ValueError:
+        print("[bold red]Aborting due to empty description")
+        return
 
-    print(f"Create new pull request for [bold blue]{src}[/] into [bold blue]{dest}[/] for {repo_slug}")
+    reviewers = []
+    # Fetch CODEOWNERS configured reviewers
+    co_res = get_codeowners(repo_slug, src, dest).unwrap().json()
 
-    if not title:
-        title = Prompt.ask("[bold]Title")
-    if not description:
-        description = Prompt.ask("[bold]Description (enter to default to generated description)")
+    reviewers.extend(co_res)
+
+    # TODO - Handle suggested reviewers
+    # # Fetch suggested reviewers
+    # sr_res = get_recommended_reviewers(repo_slug).unwrap().json()
+    # print(sr_res)
+
+    # TODO - Prompt the user with a nice UI for selecting reviewers
+    # if not reviewers:
+    #     # There were no codeowners, prompt the user for things
+    #     Prompt()
 
     try:
         with Console().status("Creating pull request"):
-            res = create_pr(repo_slug, title, src, dest, description, close_source_branch).unwrap()
+            res = create_pr(repo_slug, title, src, dest, description, close_source_branch, reviewers).unwrap()
         print(f"Successfully created PR - {res.json()['links']['html']['href']}")
     except HTTPError as exc:
         # TODO - Handle possible errors here - eg 400 if no diff commits in branch
-        print(f"[bold red]{exc.response.content}")
+        print(f"[bold red]Aborting: {exc.response.json()['error']['message']}")
