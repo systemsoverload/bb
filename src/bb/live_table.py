@@ -1,4 +1,3 @@
-
 # pip install readchar
 # https://github.com/magmax/python-readchar seems low-overhead and simple
 from readchar import key, readkey
@@ -30,6 +29,8 @@ def generate_table(console, title, headers, rows, selected) -> Table:
             selected -= selected - size // 2
 
     for i, row in enumerate(rows):
+        if row[0] not in ["[ ]", "[X]"]:
+            row.insert(0, "[ ]")
         table.add_row(*row, style=SELECTED if i == selected else None)
 
     return table
@@ -38,9 +39,7 @@ def generate_table(console, title, headers, rows, selected) -> Table:
 def generate_live_table(title, headers, rows):
     console = Console()
     selected = 0
-    with Live(
-        generate_table(console, title, headers, rows, selected), auto_refresh=False
-    ) as live:
+    with Live(generate_table(console, title, headers, rows, selected), auto_refresh=False, transient=True) as live:
         while True:
             ch = readkey()
 
@@ -49,10 +48,10 @@ def generate_live_table(title, headers, rows):
             if ch == key.DOWN or ch == "j":
                 selected = min(len(rows) - 1, selected + 1)
             if ch == key.SPACE:
-                if rows[selected][0] == '[ ]':
-                    rows[selected][0] = '[X]'
+                if rows[selected][0] == "[ ]":
+                    rows[selected][0] = "[X]"
                 else:
-                    rows[selected][0] = '[ ]'
+                    rows[selected][0] = "[ ]"
             if ch == key.ENTER:
                 live.stop()
                 break
