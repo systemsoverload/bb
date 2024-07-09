@@ -2,7 +2,7 @@ import requests
 
 from bb.config import BBConfig
 from bb.exceptions import IPWhitelistException
-from bb.typing import Err, Ok, Result
+from bb.typeshed import Err, Ok, Result
 
 BASE_URL = "https://api.bitbucket.org"
 WEB_BASE_URL = "https://bitbucket.org"
@@ -121,7 +121,7 @@ def get_default_description(full_slug: str, src: str, dest: str) -> Result:
 
 def get_recommended_reviewers(full_slug: str) -> Result:
     conf = BBConfig()
-    url = "https://bitbucket.org/!api/internal/repositories/bitbucket/core/recommended-reviewers"
+    url = f"{BASE_URL}/internal/repositories/bitbucket/core/recommended-reviewers"
     res = requests.get(
         url,
         auth=(conf.get("auth.username"), conf.get("auth.app_password")),
