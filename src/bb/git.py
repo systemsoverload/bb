@@ -5,7 +5,7 @@ from typing import Optional
 from rich.console import Console
 
 from bb.exceptions import GitPushRejectedException, IPWhitelistException
-from bb.typing import Err, Ok, Result
+from bb.typeshed import Err, Ok, Result
 
 
 def get_current_repo_slug() -> Result:
