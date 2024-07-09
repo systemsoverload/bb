@@ -2,7 +2,7 @@ import requests
 
 from bb.config import BBConfig
 from bb.exceptions import IPWhitelistException
-from bb.typeshed import Err, Ok, Result
+from bb.typeshed import Err, Ok, Result, User
 
 BASE_URL = "https://api.bitbucket.org"
 WEB_BASE_URL = "https://bitbucket.org"
@@ -58,16 +58,17 @@ def get_prs(full_slug: str, _all: bool = False, reviewing: bool = False, mine: b
     return Ok(res.json()["values"])
 
 
-def create_pr(full_slug: str, title: str, src: str, dest: str, description: str, close_source_branch: str, reviewers: list) -> Result:
+def create_pr(
+    full_slug: str, title: str, src: str, dest: str, description: str, close_source_branch: str, reviewers: list[User]
+) -> Result:
     conf = BBConfig()
-
 
     data = {
         "title": title,
         "source": {"branch": {"name": src}},
         "destination": {"branch": {"name": dest}},
         "close_source_branch": close_source_branch,
-        "reviewers": [{"uuid": r.get('uuid')} for r in reviewers if r.get('uuid')]
+        "reviewers": [{"uuid": r.uuid} for r in reviewers],
     }
 
     if description:
@@ -119,6 +120,7 @@ def get_default_description(full_slug: str, src: str, dest: str) -> Result:
 
     return Ok(res)
 
+
 def get_recommended_reviewers(full_slug: str) -> Result:
     conf = BBConfig()
     url = f"{BASE_URL}/internal/repositories/bitbucket/core/recommended-reviewers"
@@ -133,6 +135,7 @@ def get_recommended_reviewers(full_slug: str) -> Result:
         return Err(exc)
 
     return Ok(res)
+
 
 def get_codeowners(full_slug: str, src: str, dest: str) -> Result:
     conf = BBConfig()

@@ -1,7 +1,14 @@
+from dataclasses import dataclass
 from typing import Generic, NoReturn, TypeVar
 
 OkType = TypeVar("OkType")
 ErrType = TypeVar("ErrType", bound=Exception)
+
+
+@dataclass
+class User:
+    display_name: str
+    uuid: str
 
 
 class Ok(Generic[OkType]):

@@ -35,7 +35,9 @@ def get_current_branch() -> Result:
 
 def get_current_diff_to_main() -> Result:
     try:
-        diff = check_output(shlex.split(f"git --no-pager diff {get_default_branch().unwrap()}...{get_current_branch().unwrap()}"))
+        diff = check_output(
+            shlex.split(f"git --no-pager diff {get_default_branch().unwrap()}...{get_current_branch().unwrap()}")
+        )
         return Ok(diff.strip())
     except CalledProcessError as e:
         return Err(e)
