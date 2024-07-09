@@ -58,6 +58,8 @@ pygments==2.18.0
     # via rich
 python-dateutil==2.9.0.post0
     # via arrow
+readchar==4.1.0
+    # via bb
 requests==2.32.2
     # via bb
 rich==13.7.1

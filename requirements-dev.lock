@@ -19,6 +19,7 @@ charset-normalizer==3.3.2
 click==8.1.7
     # via bb
 coverage==7.5.3
+    # via coverage
     # via pytest-cov
 decorator==5.1.1
     # via ipdb
@@ -69,6 +70,8 @@ pytest==8.2.1
 pytest-cov==5.0.0
 python-dateutil==2.9.0.post0
     # via arrow
+readchar==4.1.0
+    # via bb
 requests==2.32.2
     # via bb
 rich==13.7.1
