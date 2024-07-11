@@ -3,6 +3,7 @@ from requests.exceptions import HTTPError
 from rich import print
 from rich.console import Console
 from rich.table import Table
+from rich.text import Text
 
 from bb.api import (
     WEB_BASE_URL,
@@ -10,6 +11,7 @@ from bb.api import (
     get_codeowners,
     get_default_description,
     get_prs,
+    get_recommended_reviewers,
 )
 from bb.git import (
     GitPushRejectedException,
@@ -21,6 +23,8 @@ from bb.git import (
     get_default_branch,
     push_branch,
 )
+from bb.live_table import SelectableRow, generate_live_table
+from bb.typeshed import User
 from bb.utils import repo_context_command
 
 
@@ -121,37 +125,52 @@ def create(repo_slug, close_source_branch, src, dest):
     if not get_current_diff_to_main().unwrap():
         return print("[bold red]Aborting - no changes on local branch")
 
-    # If branch not pushed, do it now
-    try:
-        push_branch(src).unwrap()
-    except (GitPushRejectedException, IPWhitelistException) as e:
-        print(f"[bold red]Error pushing {src}")
-        print(f"[bold red]{e}")
-        return
+    with Console().status("Pushing local branch"):
+        try:
+            push_branch(src).unwrap()
+        except (GitPushRejectedException, IPWhitelistException) as e:
+            print(f"[bold red]Error pushing {src}")
+            print(f"[bold red]{e}")
+            return
 
     # Fetch the generated default description from BB API and open configured editor
-    dd_res = get_default_description(repo_slug, src, dest).unwrap().json()
-    try:
-        title, description = edit_tmp_file(f"{dd_res['title']}\n------\n{dd_res['description']}").unwrap()
-    except ValueError:
-        print("[bold red]Aborting due to empty description")
-        return
+    with Console().status("Generating PR Description"):
+        dd_res = get_default_description(repo_slug, src, dest).unwrap().json()
+        try:
+            title, description = edit_tmp_file(f"{dd_res['title']}\n------\n{dd_res['description']}").unwrap()
+        except ValueError:
+            print("[bold red]Aborting due to empty description")
+            return
 
     reviewers = []
-    # Fetch CODEOWNERS configured reviewers
-    co_res = get_codeowners(repo_slug, src, dest).unwrap().json()
+    with Console().status("Calculating CODEOWNERS"):
+        co_res = get_codeowners(repo_slug, src, dest).unwrap().json()
 
     reviewers.extend(co_res)
 
-    # TODO - Handle suggested reviewers
-    # # Fetch suggested reviewers
-    # sr_res = get_recommended_reviewers(repo_slug).unwrap().json()
-    # print(sr_res)
+    with Console().status("Calculating recommended reviewers"):
+        rr = get_recommended_reviewers(repo_slug).unwrap().json()
 
-    # TODO - Prompt the user with a nice UI for selecting reviewers
-    # if not reviewers:
-    #     # There were no codeowners, prompt the user for things
-    #     Prompt()
+    headers = ["name"]
+    rows = []
+
+    # TODO - De-dedupe between CODEOWNERS and suggested reviewers
+    # Wrap reviewer names in Text objects to apply UUID as hidden meta data
+    # for rr in rr["suggested_reviewers"]:
+    #     name = Text(rr['full_name'])
+    # FIXME - this needs to be profile.uuid to satisfy PR creation form
+    #     name.apply_meta({"uuid": rr["aid"]})
+    #     rows.append([name])
+
+    for co in co_res:
+        name = Text(co["display_name"])
+        name.apply_meta({"uuid": co["uuid"]})
+        rows.append(SelectableRow([name], selected=True))
+
+    reviewers = [
+        User(display_name=u[0].plain, uuid=u[0].spans[0].style.meta["uuid"])
+        for u in generate_live_table("reviewers", headers, rows)
+    ]
 
     try:
         with Console().status("Creating pull request"):

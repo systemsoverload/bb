@@ -1,5 +1,5 @@
-# pip install readchar
-# https://github.com/magmax/python-readchar seems low-overhead and simple
+from dataclasses import dataclass
+
 from readchar import key, readkey
 from rich.console import Console
 from rich.live import Live
@@ -9,7 +9,24 @@ from rich.table import Table
 SELECTED = Style(color="blue", bgcolor="white", bold=True)
 
 
-def generate_table(console, title, headers, rows, selected) -> Table:
+
+
+@dataclass
+class SelectableRow:
+    data: list
+    selected: bool
+
+    def __getitem__(self, key):
+        self.data[key]
+
+    def __setitem__(self, key, val):
+        self.data[key] = val
+
+    def insert(self, idx, val):
+        self.data.insert(idx, val)
+
+
+def generate_table(console, title, headers, rows: list[SelectableRow], cur) -> Table:
 
     table = Table(title=title)
 
@@ -19,42 +36,50 @@ def generate_table(console, title, headers, rows, selected) -> Table:
 
     size = console.height - 4
     if len(rows) + 3 > size:
-        if selected < size / 2:
+        if cur < size / 2:
             rows = rows[:size]
-        elif selected + size / 2 > len(rows):
+        elif cur + size / 2 > len(rows):
             rows = rows[-size:]
-            selected -= len(rows) - size
+            cur -= len(rows) - size
         else:
-            rows = rows[selected - size // 2 : selected + size // 2]
-            selected -= selected - size // 2
+            rows = rows[cur - size // 2 : cur + size // 2]
+            cur -= cur - size // 2
 
     for i, row in enumerate(rows):
-        if row[0] not in ["[ ]", "[X]"]:
-            row.insert(0, "[ ]")
-        table.add_row(*row, style=SELECTED if i == selected else None)
+        if row.data[0] not in ["[ ]", "[X]"]:
+            row.data.insert(0, "[ ]")
+        if row.selected:
+            row.data[0] = "[X]"
+        else:
+            row.data[0] = "[ ]"
+
+        table.add_row(*row.data, style=SELECTED if i == cur else None)
 
     return table
 
 
-def generate_live_table(title, headers, rows):
+def generate_live_table(title, headers, rows: list[SelectableRow]) -> list:
+    # XXX - This is as generic as possible, but not particularly extensible at this point and pretty specific
+    # to displaying PR reviewers in a selectable table.
+
+    # XXX - This is a minimum working UI. It will _probably_ make sense to bring in a full Textual inline
+    # app with buttons and various widgets, but this works fine for now.
     console = Console()
-    selected = 0
-    with Live(generate_table(console, title, headers, rows, selected), auto_refresh=False, transient=True) as live:
+    cur = 0
+    with Live(generate_table(console, title, headers, rows, cur), auto_refresh=False, transient=True) as live:
         while True:
             ch = readkey()
 
             if ch == key.UP or ch == "k":
-                selected = max(0, selected - 1)
+                cur = max(0, cur - 1)
             if ch == key.DOWN or ch == "j":
-                selected = min(len(rows) - 1, selected + 1)
+                cur = min(len(rows) - 1, cur + 1)
             if ch == key.SPACE:
-                if rows[selected][0] == "[ ]":
-                    rows[selected][0] = "[X]"
-                else:
-                    rows[selected][0] = "[ ]"
+                rows[cur].selected = not rows[cur].selected
             if ch == key.ENTER:
                 live.stop()
                 break
-            live.update(generate_table(console, title, headers, rows, selected), refresh=True)
+            live.update(generate_table(console, title, headers, rows, cur), refresh=True)
 
-    return [i for i in rows if i[0] == "[X]"]
+    # Return "selected" rows, minus the selection state column
+    return [i.data[1:] for i in rows if i.selected]
