@@ -154,12 +154,13 @@ def create(repo_slug, close_source_branch, src, dest):
     headers = ["name"]
     rows = []
 
-    # TODO - De-dedupe between CODEOWNERS and suggested reviewers
     # Wrap reviewer names in Text objects to apply UUID as hidden meta data
+    owner_names = [c['display_name'] for c in co_res]
     for rr in rr["suggested_reviewers"]:
-        name = Text(rr["full_name"])
-        name.apply_meta({"uuid": rr["uuid"]})
-        rows.append(SelectableRow([name], selected=False))
+        if rr['full_name'] not in owner_names:
+            name = Text(rr["full_name"])
+            name.apply_meta({"uuid": rr["uuid"]})
+            rows.append(SelectableRow([name], selected=False))
 
     for co in co_res:
         name = Text(co["display_name"], style="bold magenta")
