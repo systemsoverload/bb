@@ -155,12 +155,12 @@ def create(repo_slug, close_source_branch, src, dest):
     rows = []
 
     # TODO - De-dedupe between CODEOWNERS and suggested reviewers
+    # TODO - Flag CODEOWNERS visually to help imply why they are selected
     # Wrap reviewer names in Text objects to apply UUID as hidden meta data
-    # for rr in rr["suggested_reviewers"]:
-    #     name = Text(rr['full_name'])
-    # FIXME - this needs to be profile.uuid to satisfy PR creation form
-    #     name.apply_meta({"uuid": rr["aid"]})
-    #     rows.append([name])
+    for rr in rr["suggested_reviewers"]:
+        name = Text(rr["full_name"])
+        name.apply_meta({"uuid": rr["uuid"]})
+        rows.append(SelectableRow([name], selected=False))
 
     for co in co_res:
         name = Text(co["display_name"])
