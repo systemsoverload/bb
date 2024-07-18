@@ -18,7 +18,6 @@ permissions:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    environment: release
     permissions:
       id-token: write
     steps:
