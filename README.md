@@ -4,7 +4,12 @@ Bitbucket CLI tools
 
 ## Installation
 
-`pipx install atlassian-bb-cli`
+### From source
+`git clone git@github.com:systemsoverload/bb.git`
+`cd bb && pipx install .`
+
+### From pypi
+`pipx install bitbucket-cloud-cli`
 
 ### Enabling auto-completion
 
