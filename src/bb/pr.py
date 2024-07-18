@@ -155,7 +155,6 @@ def create(repo_slug, close_source_branch, src, dest):
     rows = []
 
     # TODO - De-dedupe between CODEOWNERS and suggested reviewers
-    # TODO - Flag CODEOWNERS visually to help imply why they are selected
     # Wrap reviewer names in Text objects to apply UUID as hidden meta data
     for rr in rr["suggested_reviewers"]:
         name = Text(rr["full_name"])
@@ -163,13 +162,13 @@ def create(repo_slug, close_source_branch, src, dest):
         rows.append(SelectableRow([name], selected=False))
 
     for co in co_res:
-        name = Text(co["display_name"])
+        name = Text(co["display_name"], style="bold magenta")
         name.apply_meta({"uuid": co["uuid"]})
         rows.append(SelectableRow([name], selected=True))
 
     reviewers = [
         User(display_name=u[0].plain, uuid=u[0].spans[0].style.meta["uuid"])
-        for u in generate_live_table("reviewers", headers, rows)
+        for u in generate_live_table("\n\n[bold]Select Reviewers[/bold]\n(space to select, enter to submit)", headers, rows)
     ]
 
     try:
