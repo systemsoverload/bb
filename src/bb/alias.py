@@ -27,3 +27,15 @@ def remove(alias_name):
     conf.delete(f"alias.{alias_name}")
     conf.write()
     print(f"[bold]Successfully removed alias {alias_name}")
+
+
+@alias.command()
+def list():
+    conf = BBConfig()
+    aliases = conf.get('alias')
+    if not aliases:
+        print("[bold]no aliases defined")
+        return
+    print("[bold]bb cli defined aliases:")
+    for alias, cmd in aliases.items():
+        print(f"  [bold]{alias}[/bold] = '{cmd}'")
