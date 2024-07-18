@@ -37,8 +37,8 @@ def login(username, app_password):
 
         conf.update("auth.username", username)
         conf.update("auth.app_password", app_password)
-        conf.update("auth.uuid", res.json().get("uuid"))
-        conf.update("auth.account_id", res.json().get("account_id"))
+        conf.update("auth.uuid", res.get("uuid"))
+        conf.update("auth.account_id", res.get("account_id"))
 
         print(f":beaming_face_with_smiling_eyes: Successfully logged in as [bold]{username}")
         conf.write()
