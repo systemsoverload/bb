@@ -1,7 +1,7 @@
 [project]
 name = "bb"
-version = "0.1.2"
 description = "Atlassian Bitbucket Cloud CLI"
+dynamic = ["version"]
 authors = [
     { name = "tjk", email = "tkells@atlassian.com" }
 ]
@@ -18,6 +18,16 @@ dependencies = [
 ]
 readme = "README.md"
 requires-python = ">= 3.8"
+
+# Dynamically derive the version number from bb.version
+[tool.hatch.version ]
+path = "src/bb/version.py"
+
+[tool.hatch.metadata]
+allow-direct-references = true
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/bb"]
 
 [project.scripts]
 bb = "bb:cli"
@@ -41,12 +51,6 @@ lint = { chain = ["lint:isort", "lint:black", "lint:flake8" ] }
 
 [tool.black]
 line-length = 120
-
-[tool.hatch.metadata]
-allow-direct-references = true
-
-[tool.hatch.build.targets.wheel]
-packages = ["src/bb"]
 
 [tool.pytest.ini_options]
 addopts = "--cov=bb"

@@ -8,6 +8,8 @@ from bb.config import BBConfig
 from bb.pr import pr
 from bb.utils import repo_context_command
 
+from bb.version import __version__
+
 
 class AliasedGroup(click.Group):
     """Enable dynamic dispatch to support aliases via `bb alias set`"""
@@ -42,7 +44,12 @@ def browse(repo_slug):
     """Open current repository in your web browser"""
     webbrowser.open(f"https://bitbucket.org/{repo_slug}", new=2)
 
+@click.command()
+def version():
+    """Show the version of bb CLI"""
+    print(f"bb-cli version {__version__}")
 
+cli.add_command(version)
 cli.add_command(alias)
 cli.add_command(auth)
 cli.add_command(browse)
