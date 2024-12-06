@@ -5,7 +5,7 @@ from rich.console import Console
 from rich.table import Table
 from rich.text import Text
 
-from bb.api import (
+from bb.core.api import (
     WEB_BASE_URL,
     create_pr,
     get_codeowners,
@@ -13,15 +13,16 @@ from bb.api import (
     get_prs,
     get_recommended_reviewers,
 )
-from bb.git import (
+from bb.core.git import (
     GitPushRejectedException,
     IPWhitelistException,
-    edit_tmp_file,
-    get_branch,
-    get_current_branch,
-    get_current_diff_to_main,
-    get_default_branch,
-    push_branch,
+    GitCommand
+    # edit_tmp_file,
+    # get_branch,
+    # get_current_branch,
+    # get_current_diff_to_main,
+    # get_default_branch,
+    # push_branch,
 )
 from bb.live_table import SelectableRow, generate_live_table
 from bb.typeshed import User

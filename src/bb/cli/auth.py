@@ -5,8 +5,8 @@ import click
 from requests.exceptions import HTTPError
 from rich import print
 
-from bb.api import get_auth_user
-from bb.config import BBConfig
+from bb.core.api import get_auth_user
+from bb.core.config import BBConfig
 
 # TODO - Make this configurable
 CONF_DIR = Path(os.path.expanduser("~/.config/bb/"))

@@ -4,7 +4,7 @@ from subprocess import CalledProcessError
 import click
 from rich import print
 
-from bb.git import get_current_repo_slug
+from bb.core.git import get_current_repo_slug
 
 
 def rget(dct, keys, default=None, getter=None):

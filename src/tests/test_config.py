@@ -1,4 +1,4 @@
-from bb.config import BBConfig
+from bb.core.config import BBConfig
 
 
 def test_config_update_does_not_clobber():

@@ -1,7 +1,7 @@
 import click
 from rich import print
 
-from bb.config import BBConfig
+from bb.core.config import BBConfig
 
 
 @click.group()

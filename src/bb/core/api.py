@@ -1,6 +1,6 @@
 import requests
 
-from bb.config import BBConfig
+from bb.core.config import BBConfig
 from bb.exceptions import IPWhitelistException
 from bb.typeshed import Err, Ok, Result, User
 
