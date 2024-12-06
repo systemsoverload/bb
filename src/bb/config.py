@@ -45,7 +45,7 @@ class BBConfig:
             if subkey:
                 del self._conf[key][subkey[0]]
             else:
-                del self._conf[path]
+                del self._conf[key]
 
     T = TypeVar("T")
 
