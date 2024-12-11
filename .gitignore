@@ -9,3 +9,4 @@ wheels/
 # venv
 .venv
 .coverage
+.DS_Store
