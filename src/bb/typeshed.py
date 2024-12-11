@@ -18,6 +18,10 @@ class Ok(Generic[OkType]):
     def unwrap(self) -> OkType:
         return self._value
 
+    def unwrap_err(self):
+        """Raises an exception since Ok variant contains no error"""
+        raise ValueError("Called unwrap_err on Ok variant")
+
 
 class Err(Generic[ErrType]):
     def __init__(self, exception: ErrType) -> None:
@@ -25,6 +29,10 @@ class Err(Generic[ErrType]):
 
     def unwrap(self) -> NoReturn:
         raise self._exception
+
+    def unwrap_err(self):
+        """Return the error/exception contained in this Err variant"""
+        return self._exception
 
 
 Result = Ok[OkType] | Err[ErrType]

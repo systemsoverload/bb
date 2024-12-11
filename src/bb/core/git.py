@@ -1,9 +1,9 @@
 import os
 import shlex
 from subprocess import STDOUT, CalledProcessError, check_output
-from typing import List, Optional, Union
+from tempfile import NamedTemporaryFile
+from typing import List, Optional
 
-from rich import print
 from rich.console import Console
 from rich.table import Table
 
@@ -34,7 +34,7 @@ class GitCommand:
                 universal_newlines=universal_newlines,
                 stderr=STDOUT,
                 env=env
-            ))
+            ).strip())
         except CalledProcessError as e:
             if "whitelist your IP" in getattr(e, 'output', ''):
                 return Err(IPWhitelistException(e.output))
@@ -89,6 +89,10 @@ def get_current_branch() -> Result:
     """Get name of current branch"""
     return GitCommand('rev-parse', '--abbrev-ref', 'HEAD').run()
 
+def get_branch(branch_name: str) -> Result:
+    """Get the full branch name from a branch reference"""
+    return GitCommand('rev-parse', '--abbrev-ref', branch_name).run()
+
 def get_all_branches(remote: bool = False) -> Result:
     """Get list of all branches"""
     args = ['--list', '--format=%(refname:short)']
@@ -115,6 +119,34 @@ def rename_branch(old_name: str, new_name: str) -> Result:
     """Rename a branch"""
     return GitCommand('branch', '-m', old_name, new_name).run()
 
+def push_branch(branch_name: Optional[str] = None) -> Result:
+    """Push a branch to origin. If no branch name provided, pushes current branch."""
+    try:
+        if not branch_name:
+            current_branch = get_current_branch().unwrap()
+            branch_name = current_branch.strip()
+
+        with Console().status(f"[bold]Pushing {branch_name} to origin..."):
+            result = GitCommand('push', 'origin', branch_name).run()
+
+            if isinstance(result, Ok):
+                return result
+
+            # At this point we know it's an Err so unwrap_err is safe
+            error = result.unwrap_err()
+            if hasattr(error, 'output'):
+                output = error.output
+                if "[rejected]" in output:
+                    return Err(GitPushRejectedException(output))
+                elif "whitelist your IP" in output:
+                    return Err(IPWhitelistException(output))
+                else:
+                    # Include the actual git error output in the error message
+                    return Err(RuntimeError(f"Failed to push branch: {output}"))
+            return result
+
+    except Exception as e:
+        return Err(RuntimeError(f"Unexpected error pushing branch: {str(e)}"))
 # Commit Operations
 def commit(message: str, files: Optional[List[str]] = None) -> Result:
     """Create a commit"""
@@ -271,6 +303,51 @@ def clean(force: bool = False, directories: bool = False) -> Result:
 def check_ignore(*paths: str) -> Result:
     """Check if paths are ignored by git"""
     return GitCommand('check-ignore', *paths).run()
+
+def get_current_diff_to_main() -> Result:
+    """Get diff between current branch and default branch"""
+    try:
+        default_branch = get_default_branch().unwrap()
+        current_branch = get_current_branch().unwrap()
+        return GitCommand('--no-pager', 'diff', f'{default_branch}...{current_branch}').run()
+    except Exception as e:
+        return Err(e)
+
+def get_default_branch() -> Result:
+    """Get the default branch name from git remote"""
+    try:
+        out = GitCommand('symbolic-ref', 'refs/remotes/origin/HEAD', '--short').run().unwrap()
+        return Ok(out.strip().split('/')[-1])
+    except Exception as e:
+        return Err(e)
+
+def edit_tmp_file(contents: str = "") -> Result:
+    """Open a tempfile with git's configured editor and return the value written when saving/closing.
+    Returns a tuple of (title, description) split on '------'."""
+    from tempfile import NamedTemporaryFile
+    import subprocess
+
+    try:
+        # Get the configured editor using GitCommand
+        editor = GitCommand('config', '--get', 'core.editor', check_repo=False).run().unwrap().strip()
+
+        with NamedTemporaryFile(delete=True, delete_on_close=False) as fp:
+            edit_cmd = f"{editor} {fp.name}"
+            if contents:
+                fp.write(contents.encode("utf-8"))
+            fp.close()
+            out = check_output(shlex.split(edit_cmd), universal_newlines=True, stderr=STDOUT)
+
+            with open(fp.name) as f:
+                contents = f.read()
+
+        if not contents:
+            return Err(ValueError("Aborting due to empty description"))
+
+        return Ok(contents.split("------", maxsplit=1))
+
+    except Exception as e:
+        return Err(e)
 
 # Pretty Printing Functions
 def print_status(console: Console = Console()) -> None:

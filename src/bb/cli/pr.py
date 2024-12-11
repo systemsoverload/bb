@@ -16,13 +16,12 @@ from bb.core.api import (
 from bb.core.git import (
     GitPushRejectedException,
     IPWhitelistException,
-    GitCommand
-    # edit_tmp_file,
-    # get_branch,
-    # get_current_branch,
-    # get_current_diff_to_main,
-    # get_default_branch,
-    # push_branch,
+    edit_tmp_file,
+    get_branch,
+    get_current_branch,
+    get_current_diff_to_main,
+    get_default_branch,
+    push_branch,
 )
 from bb.live_table import SelectableRow, generate_live_table
 from bb.typeshed import User
@@ -145,25 +144,26 @@ def create(repo_slug, close_source_branch, src, dest):
 
     reviewers = []
     with Console().status("Calculating CODEOWNERS"):
-        co_res = get_codeowners(repo_slug, src, dest).unwrap().json()
+        code_owners = get_codeowners(repo_slug, src, dest).unwrap().json()
 
-    reviewers.extend(co_res)
+    reviewers.extend(code_owners)
 
     with Console().status("Calculating recommended reviewers"):
-        rr = get_recommended_reviewers(repo_slug).unwrap().json()
+        recommended_reviewers = get_recommended_reviewers(repo_slug).unwrap().json()
 
     headers = ["name"]
     rows = []
 
     # Wrap reviewer names in Text objects to apply UUID as hidden meta data
-    owner_names = [c['display_name'] for c in co_res]
-    for rr in rr["suggested_reviewers"]:
-        if rr['full_name'] not in owner_names:
-            name = Text(rr["full_name"])
-            name.apply_meta({"uuid": rr["uuid"]})
+    owner_names = [c['display_name'] for c in code_owners]
+
+    for rev in recommended_reviewers:
+        if rev['display_name'] not in owner_names:
+            name = Text(rev["display_name"])
+            name.apply_meta({"uuid": rev["uuid"]})
             rows.append(SelectableRow([name], selected=False))
 
-    for co in co_res:
+    for co in code_owners:
         name = Text(co["display_name"], style="bold magenta")
         name.apply_meta({"uuid": co["uuid"]})
         rows.append(SelectableRow([name], selected=True))

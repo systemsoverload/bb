@@ -107,6 +107,9 @@ def get_auth_user(username: str, app_password: str) -> Result:
 
 def get_default_description(full_slug: str, src: str, dest: str) -> Result:
     conf = BBConfig()
+    src = src.strip()
+    dest = dest.strip()
+
     url = f"{BASE_URL}/internal/repositories/{full_slug}/pullrequests/default-messages/{src}%0D{dest}?raw=true"
     res = requests.get(
         url,
