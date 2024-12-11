@@ -180,3 +180,11 @@ def create(repo_slug, close_source_branch, src, dest):
     except HTTPError as exc:
         # TODO - Handle possible errors here - eg 400 if no diff commits in branch
         print(f"[bold red]Aborting: {exc.response.json()['error']['message']}")
+
+
+@pr.command()
+@repo_context_command
+def review(repo_slug):
+    """Interactive TUI for reviewing pull requests"""
+    from bb.tui import review_prs
+    review_prs(repo_slug)

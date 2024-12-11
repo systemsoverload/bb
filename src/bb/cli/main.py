@@ -4,6 +4,7 @@ import click
 
 from bb.cli.alias import alias
 from bb.cli.auth import auth
+from bb.cli.git import git
 from bb.core.config import BBConfig
 from bb.cli.pr import pr
 from bb.utils import repo_context_command
@@ -54,3 +55,4 @@ cli.add_command(alias)
 cli.add_command(auth)
 cli.add_command(browse)
 cli.add_command(pr)
+cli.add_command(git)

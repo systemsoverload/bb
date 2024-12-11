@@ -27,7 +27,7 @@ def get_prs(full_slug: str, _all: bool = False, reviewing: bool = False, mine: b
                 "-values.summary",
                 "-values.links",
                 "-values.destination",
-                "-values.source",
+                # "-values.source",
                 "-values.participants.links",
             ]
         ),
