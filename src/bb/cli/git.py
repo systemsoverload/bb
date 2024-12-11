@@ -11,9 +11,7 @@ from bb.core.git import (
     delete_tag,
     diff,
     fetch,
-    get_all_branches,
     get_config,
-    get_current_branch,
     list_tags,
     print_branch_list,
     print_status,
@@ -24,7 +22,6 @@ from bb.core.git import (
     stash_list,
     stash_pop,
     stash_save,
-    status,
 )
 from bb.typeshed import Ok, Result
 
@@ -36,14 +33,14 @@ def git():
 
 
 # Status Commands
-@git.command()
+@git.command(name="status")
 @click.option('--short', '-s', is_flag=True, help='Show status in short format')
 def status_cmd(short):
     """Show working tree status"""
     print_status()
 
 
-@git.command()
+@git.command(name="diff")
 @click.option('--cached', '-c', is_flag=True, help='Show staged changes')
 @click.argument('files', nargs=-1)
 def diff_cmd(cached, files):
@@ -62,17 +59,17 @@ def branch():
     pass
 
 
-@branch.command(name='list')
+@branch.command(name="list")
 @click.option('--remote', '-r', is_flag=True, help='List remote branches')
-def list_branches(remote):
+def list_branches_cmd(remote):
     """List branches"""
     print_branch_list()
 
 
-@branch.command()
+@branch.command(name="create")
 @click.argument('name')
 @click.option('--start-point', '-s', help='Starting point for new branch')
-def create(name, start_point):
+def create_cmd(name, start_point):
     """Create a new branch"""
     result = create_branch(name, start_point)
     if isinstance(result, Ok):
@@ -81,10 +78,10 @@ def create(name, start_point):
         print(f"Error creating branch: {result.unwrap_err()}")
 
 
-@branch.command()
+@branch.command(name="delete")
 @click.argument('name')
 @click.option('--force', '-f', is_flag=True, help='Force delete branch')
-def delete(name, force):
+def delete_cmd(name, force):
     """Delete a branch"""
     result = delete_branch(name, force)
     if isinstance(result, Ok):
@@ -93,10 +90,10 @@ def delete(name, force):
         print(f"Error deleting branch: {result.unwrap_err()}")
 
 
-@branch.command()
+@branch.command(name="rename")
 @click.argument('old_name')
 @click.argument('new_name')
-def rename(old_name, new_name):
+def rename_cmd(old_name, new_name):
     """Rename a branch"""
     result = rename_branch(old_name, new_name)
     if isinstance(result, Ok):
@@ -106,7 +103,7 @@ def rename(old_name, new_name):
 
 
 # Commit Commands
-@git.command()
+@git.command(name="commit")
 @click.option('--message', '-m', required=True, help='Commit message')
 @click.argument('files', nargs=-1)
 def commit_cmd(message, files):
@@ -118,9 +115,9 @@ def commit_cmd(message, files):
         print(f"Error committing changes: {result.unwrap_err()}")
 
 
-@git.command()
+@git.command(name="amend")
 @click.option('--message', '-m', help='New commit message')
-def amend(message):
+def amend_cmd(message):
     """Amend the last commit"""
     result = amend_commit(message)
     if isinstance(result, Ok):
@@ -156,7 +153,7 @@ def push_cmd(remote, branch, force):
         print(f"Error pushing changes: {result.unwrap_err()}")
 
 
-@git.command()
+@git.command(name="fetch")
 @click.option('--remote', '-r', help='Remote to fetch from')
 @click.option('--all', '-a', is_flag=True, help='Fetch all remotes')
 def fetch_cmd(remote, all):
