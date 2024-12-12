@@ -23,11 +23,12 @@ def get_prs(full_slug: str, _all: bool = False, reviewing: bool = False, mine: b
         "fields": ",".join(
             [
                 "+values.participants",
-                "-values.description",
+                # TODO - maybe make these configurable for thin responses on the list view?
+                #"-values.description",
+                #"-values.source",
                 "-values.summary",
                 "-values.links",
                 "-values.destination",
-                # "-values.source",
                 "-values.participants.links",
             ]
         ),

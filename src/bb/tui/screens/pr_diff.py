@@ -1,15 +1,16 @@
 """Pull request diff screen module"""
 
+from textual import work
 from textual.app import ComposeResult
 from textual.binding import Binding
 from textual.containers import ScrollableContainer
-from textual.widgets import Header, Footer, Static
-from textual import work
+from textual.widgets import Footer, Header, Static
 from textual.worker import get_current_worker
 
 from bb.core.git import get_pr_diff
 from bb.models import FileDiff
 from bb.tui.screens.base import BaseScreen
+
 
 class PRDiffScreen(BaseScreen):
     """Screen for viewing pull request diffs"""

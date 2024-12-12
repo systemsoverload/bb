@@ -1,13 +1,19 @@
 """Pull request detail screen module"""
 
+from typing import List
+
+from textual import work
 from textual.app import ComposeResult
 from textual.binding import Binding
-from textual.containers import Container, Horizontal, ScrollableContainer
-from textual.widgets import Header, Footer, Static
-from textual import work
-from textual.worker import get_current_worker
+from textual.containers import (Container, Horizontal, ScrollableContainer,
+                                Vertical)
+from textual.widgets import Footer, Header, Markdown, Static
+from textual.worker import Worker, get_current_worker
 
+from bb.tui.types import FileDiffType
 from bb.tui.screens.base import BaseScreen
+from bb.typeshed import Result
+
 
 class PRDetailScreen(BaseScreen):
     """Screen for displaying pull request details"""
@@ -26,17 +32,23 @@ class PRDetailScreen(BaseScreen):
         yield Header()
         yield Container(
             Static(id="pr_title", classes="pr-title"),
-            Horizontal(
-                ScrollableContainer(
-                    Static(id="pr_meta", classes="pr-meta"),
-                    id="meta_container"
+            Vertical(
+                Horizontal(
+                    ScrollableContainer(
+                        Static(id="pr_meta", classes="pr-meta"),
+                        id="meta_container"
+                    ),
+                    ScrollableContainer(
+                        Markdown(id="pr_description", classes="pr-description"),
+                        id="description_container"
+                    ),
                 ),
                 ScrollableContainer(
-                    Static(id="pr_description", classes="pr-description"),
-                    id="description_container"
+                    Static(id="pr_diffs", classes="pr-diffs"),
+                    id="diffs_container"
                 ),
-            ),
-            classes="pr-container"
+                classes="pr-container"
+            )
         )
         yield Footer()
 
@@ -48,6 +60,64 @@ class PRDetailScreen(BaseScreen):
             return
 
         self.load_pr_details()
+        self.load_pr_diffs()
+
+    @work(exclusive=True, thread=True)
+    def load_pr_diffs(self) -> None:
+        """Load PR diff content in background thread"""
+        worker = get_current_worker()
+        if worker.is_cancelled:
+            return
+
+        try:
+            self.app.call_from_thread(self.notify, "Loading diffs...", timeout=1)
+
+            diff_result: Result[List[FileDiffType], Exception] = self.state.current_pr.get_pr_diff()
+            if diff_result.is_err():
+                self.app.call_from_thread(
+                    self.notify,
+                    f"Error loading diff: {diff_result.unwrap_err()}",
+                    severity="error"
+                )
+                return
+
+            file_diffs = diff_result.unwrap()
+
+            if not worker.is_cancelled:
+                self.state.set_file_diffs(file_diffs)
+                def update_display():
+                    diff_content = []
+                    for diff in file_diffs:
+                        # Add file status if available
+                        status_str = f" ({diff.status})" if diff.status else ""
+                        header = f"[bold]{diff.filename}[/]{status_str} (+{diff.stats['additions']}, -{diff.stats['deletions']})"
+                        content = [header, ""]
+
+                        # Add formatted diff lines
+                        for line in diff.lines:
+                            if line.startswith("+"):
+                                content.append(f"[green]{line}[/]")
+                            elif line.startswith("-"):
+                                content.append(f"[red]{line}[/]")
+                            elif line.startswith("@@"):
+                                content.append(f"[blue]{line}[/]")
+                            else:
+                                content.append(line)
+                        content.append("")
+                        diff_content.extend(content)
+
+                    self.query_one("#pr_diffs").update("\n".join(diff_content))
+
+                self.app.call_from_thread(update_display)
+
+        except Exception as e:
+            if not worker.is_cancelled:
+                self.app.call_from_thread(
+                    self.notify,
+                    f"Error loading diffs: {str(e)}",
+                    severity="error",
+                    timeout=100
+                )
 
     @work(exclusive=True, thread=True)
     def load_pr_details(self) -> None:
@@ -58,6 +128,14 @@ class PRDetailScreen(BaseScreen):
 
         try:
             pr = self.state.current_pr
+
+            if not pr:
+                self.app.call_from_thread(
+                    self.notify,
+                    "No pull request selected",
+                    severity="error"
+                )
+                return
 
             def update_display():
                 # Update title
@@ -82,9 +160,9 @@ class PRDetailScreen(BaseScreen):
                 ]
                 self.query_one("#pr_meta").update("\n".join(meta))
 
-                # Update description
+                # Update description with markdown
                 desc = pr.description if pr.description else "*No description provided*"
-                self.query_one("#pr_description").update(desc)
+                self.query_one("#pr_description", Markdown).update(desc)
 
             self.app.call_from_thread(update_display)
 
@@ -126,3 +204,11 @@ class PRDetailScreen(BaseScreen):
     def action_comment(self) -> None:
         """Add a comment to the PR (not implemented)"""
         self.notify("PR commenting not implemented yet", severity="warning")
+
+    def on_worker_state_changed(self, event: Worker.StateChanged) -> None:
+        """Handle worker state changes"""
+        if event.worker.name in ["load_pr_diffs", "load_pr_details"]:
+            if event.state == "cancelled":
+                self.notify(f"{event.worker.name} cancelled", severity="warning")
+            elif event.state == "error":
+                self.notify(f"Error in {event.worker.name}: {event.worker.error}", severity="error")

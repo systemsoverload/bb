@@ -1,6 +1,6 @@
 """BitBucket CLI tool"""
-from .version import __version__
 from .cli.main import cli
+from .version import __version__
 
 __all__ = ['cli', '__version__']
 

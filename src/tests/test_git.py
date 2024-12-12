@@ -1,36 +1,17 @@
 import os
-from unittest import TestCase, mock
 from subprocess import CalledProcessError
+from unittest import TestCase, mock
 
 import pytest
 
-from bb.core.git import (
-    GitCommand,
-    get_current_repo_slug,
-    get_current_branch,
-    create_branch,
-    delete_branch,
-    rename_branch,
-    commit,
-    amend_commit,
-    status,
-    diff,
-    fetch,
-    pull,
-    push,
-    stash_save,
-    stash_pop,
-    stash_list,
-    get_config,
-    set_config,
-    create_tag,
-    delete_tag,
-    list_tags,
-    clean,
-    is_git_repo,
-)
+from bb.core.git import (GitCommand, amend_commit, clean, commit,
+                         create_branch, create_tag, delete_branch, delete_tag,
+                         diff, fetch, get_config, get_current_branch,
+                         get_current_repo_slug, is_git_repo, list_tags, pull,
+                         push, rename_branch, set_config, stash_list,
+                         stash_pop, stash_save, status)
 from bb.exceptions import GitPushRejectedException, IPWhitelistException
-from bb.typeshed import Ok, Err
+from bb.typeshed import Err, Ok
 
 
 class TestGitCommand:

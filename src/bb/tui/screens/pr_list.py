@@ -1,15 +1,16 @@
 """Pull request list screen module"""
 
+from textual import work
 from textual.app import ComposeResult
 from textual.binding import Binding
-from textual.widgets import DataTable, Header, Footer
+from textual.widgets import DataTable, Footer, Header
 from textual.worker import Worker, get_current_worker
-from textual import work
 
-from bb.core.api import get_prs, WEB_BASE_URL
-from bb.models import PullRequest
+from bb.core.api import WEB_BASE_URL, get_prs
 from bb.exceptions import IPWhitelistException
+from bb.models import PullRequest
 from bb.tui.screens.base import BaseScreen
+
 
 class PRListScreen(BaseScreen):
     """Pull request list screen showing all open PRs"""
@@ -57,9 +58,10 @@ class PRListScreen(BaseScreen):
             # Clear existing table
             table = self.query_one("#pr_table", DataTable)
             self.app.call_from_thread(table.clear)
-            self.app.call_from_thread(self.notify, "Loading pull requests...")
+            self.app.call_from_thread(self.notify, "Loading pull requests...", timeout=1)
 
             # Fetch PRs
+            # TODO - Replace this with a call to a Repository.get_prs or something
             prs_result = get_prs(self.state.repo_slug, _all=True)
             if prs_result.is_err():
                 error = prs_result.unwrap_err()
@@ -81,7 +83,7 @@ class PRListScreen(BaseScreen):
             if not worker.is_cancelled:
                 if prs_data:
                     # Update state and table
-                    self.state.prs = [PullRequest.from_api_response(pr) for pr in prs_data]
+                    self.state.prs = [PullRequest.from_api_response(pr, self.state.repo_slug) for pr in prs_data]
 
                     def update_table():
                         table.clear()

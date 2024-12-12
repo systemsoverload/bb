@@ -1,12 +1,13 @@
 """Main TUI application class"""
 
 from textual.app import App
+
+from .screens import PRDetailScreen, PRDiffScreen, PRListScreen
 from .state import PRState
-from .screens import PRListScreen, PRDetailScreen, PRDiffScreen
+
 
 class PRReviewApp(App[None]):
     """BitBucket Pull Request review application"""
-
     CSS = """
     #pr_table {
         height: 1fr;
@@ -39,12 +40,13 @@ class PRReviewApp(App[None]):
         border: solid $primary;
     }
 
-    .diff-content {
-        padding: 1;
+    .pr-diffs {
         width: 100%;
+        padding: 1;
+        border: solid $primary;
     }
 
-    #diff_container {
+    #diffs_container {
         height: 1fr;
         border: solid $primary;
     }
@@ -64,6 +66,7 @@ class PRReviewApp(App[None]):
 
     def __init__(self, repo_slug: str):
         super().__init__()
+        # TODO - replace this with an instance of Repository model
         self.state = PRState(repo_slug)
 
     def on_mount(self) -> None:

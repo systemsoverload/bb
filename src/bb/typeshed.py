@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Generic, NoReturn, TypeVar
+from typing import Generic, NoReturn, TypeVar, Union
 
 OkType = TypeVar("OkType")
 ErrType = TypeVar("ErrType", bound=Exception)
@@ -18,7 +18,7 @@ class Ok(Generic[OkType]):
     def unwrap(self) -> OkType:
         return self._value
 
-    def unwrap_err(self):
+    def unwrap_err(self) -> NoReturn:
         """Raises an exception since Ok variant contains no error"""
         raise ValueError("Called unwrap_err on Ok variant")
 
@@ -30,6 +30,7 @@ class Ok(Generic[OkType]):
         """Check if this is an Err variant"""
         return False
 
+
 class Err(Generic[ErrType]):
     def __init__(self, exception: ErrType) -> None:
         self._exception = exception
@@ -37,7 +38,7 @@ class Err(Generic[ErrType]):
     def unwrap(self) -> NoReturn:
         raise self._exception
 
-    def unwrap_err(self):
+    def unwrap_err(self) -> ErrType:
         """Return the error/exception contained in this Err variant"""
         return self._exception
 
@@ -50,5 +51,5 @@ class Err(Generic[ErrType]):
         return True
 
 
-
-Result = Ok[OkType] | Err[ErrType]
+# Define Result as a generic type alias
+Result = Union[Ok[OkType], Err[ErrType]]
