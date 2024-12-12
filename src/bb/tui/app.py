@@ -1,13 +1,13 @@
 """Main TUI application class"""
-
 from textual.app import App
+from textual.binding import Binding
 
-from .screens import PRDetailScreen, PRDiffScreen, PRListScreen
-from .state import PRState
+from bb.tui.screens import PRDetailScreen, PRDiffScreen, PRListScreen
+from bb.tui.state import PRState
 
 
 class PRReviewApp(App[None]):
-    """BitBucket Pull Request review application"""
+    """Bitbucket Pull Request review application"""
     CSS = """
     #pr_table {
         height: 1fr;
@@ -34,7 +34,6 @@ class PRReviewApp(App[None]):
     }
 
     .pr-description {
-        width: 70%;
         height: 100%;
         padding: 1;
         border: solid $primary;
@@ -57,7 +56,7 @@ class PRReviewApp(App[None]):
     }
     """
 
-    TITLE = "BitBucket PR Review"
+    TITLE = "Bitbucket PR Review"
     SCREENS = {
         "pr_list": PRListScreen,
         "pr_detail": PRDetailScreen,
@@ -66,6 +65,14 @@ class PRReviewApp(App[None]):
 
     def __init__(self, repo_slug: str):
         super().__init__()
+        # XXX - Setup textual logger for local dev - this might be better behind a flag
+        from textual.logging import TextualHandler
+        import logging
+        logging.basicConfig(
+            level=logging.DEBUG,
+            handlers=[TextualHandler()]
+        )
+
         # TODO - replace this with an instance of Repository model
         self.state = PRState(repo_slug)
 
