@@ -1,4 +1,4 @@
-"""Models for BitBucket data structures and UI state"""
+"""Models for Bitbucket data structures and UI state"""
 
 from dataclasses import dataclass, field
 from datetime import datetime
@@ -18,7 +18,7 @@ class ViewState(Enum):
 
 @dataclass
 class User:
-    """BitBucket user information"""
+    """Bitbucket user information"""
     display_name: str
     uuid: str
     account_id: Optional[str] = None

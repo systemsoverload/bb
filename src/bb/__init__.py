@@ -1,4 +1,4 @@
-"""BitBucket CLI tool"""
+"""Bitbucket CLI tool"""
 from .cli.main import cli
 from .version import __version__
 

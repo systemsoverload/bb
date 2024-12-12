@@ -65,14 +65,14 @@ def is_git_repo() -> bool:
 
 # Repository Information Commands
 def get_current_repo_slug() -> Result:
-    """Get the BitBucket repository slug from remote URL"""
+    """Get the Bitbucket repository slug from remote URL"""
     cmd = GitCommand('remote', '-v')
     try:
         out = cmd.run().unwrap()
         first_line = out.splitlines()[0].replace("\t", " ").split(" ")[1].strip()
         if "bitbucket" in first_line:
             return Ok(first_line.split(":")[-1][0:-4])
-        return Err(RuntimeError("No BitBucket repository detected"))
+        return Err(RuntimeError("No Bitbucket repository detected"))
     except Exception as e:
         return Err(e)
 

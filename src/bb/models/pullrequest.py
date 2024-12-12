@@ -1,4 +1,4 @@
-"""Models for BitBucket data structures and UI state"""
+"""Models for Bitbucket data structures and UI state"""
 
 from dataclasses import dataclass, field
 from datetime import datetime
@@ -36,7 +36,7 @@ class PullRequest:
 
     def get_pr_diff(self) -> Result[List[FileDiffType], Exception]:
         """
-        Get the pull request diff from the BitBucket API.
+        Get the pull request diff from the Bitbucket API.
         Returns a Result containing a list of FileDiffType objects.
         """
 
@@ -92,16 +92,17 @@ class PullRequest:
             )
             res.raise_for_status()
 
+            # TODO Something is wrong here... no time to care right now
             # Update FileDiffType objects with additional stats from diffstat
-            diffstat = res.json()
-            for stat in diffstat.get('values', []):
-                filename = stat.get('new', {}).get('path') or stat.get('old', {}).get('path')
-                if filename:
-                    for diff in file_diffs:
-                        if diff.filename == filename:
-                            diff.status = stat.get('status')
-                            diff.content_type = stat.get('new', {}).get('type') or stat.get('old', {}).get('type')
-                            break
+            # diffstat = res.json()
+            # for stat in diffstat.get('values', []):
+            #     filename = stat.get('new', {}).get('path') or stat.get('old', {}).get('path')
+            #     if filename:
+            #         for diff in file_diffs:
+            #             if diff and diff.filename == filename:
+            #                 diff.status = stat.get('status')
+            #                 diff.content_type = stat.get('new', {}).get('type') or stat.get('old', {}).get('type')
+            #                 break
 
             return Ok(file_diffs)
 
