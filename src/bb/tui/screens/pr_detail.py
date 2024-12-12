@@ -2,7 +2,7 @@
 
 from typing import List
 
-from textual import work
+from textual import log, work
 from textual.app import ComposeResult
 from textual.binding import Binding
 from textual.containers import (Container, Horizontal, ScrollableContainer,
@@ -55,30 +55,65 @@ class PRDetailScreen(BaseScreen):
     def on_mount(self) -> None:
         """Initialize the screen with PR data"""
         if not self.state.current_pr:
-            self.notify("No PR selected", severity="error")
+            self.notify("No PR selected", severity="error", timeout=1)
             self.action_back()
             return
+
+        self.refresh_pr_data()
+
+    def on_screen_resume(self) -> None:
+        """Called when screen becomes active"""
+        self.refresh_pr_data()
+
+    def refresh_pr_data(self) -> None:
+        """Refresh all PR data"""
+        if not self.state.current_pr:
+            self.notify("No PR selected", severity="error", timeout=1)
+            self.action_back()
+            return
+
+        # Clear existing content before loading new data
+        self.query_one("#pr_title").update("")
+        self.query_one("#pr_meta").update("")
+        self.query_one("#pr_description").update("")
+        self.query_one("#pr_diffs").update("")
 
         self.load_pr_details()
         self.load_pr_diffs()
 
-    @work(exclusive=True, thread=True)
+    @work(thread=True)
     def load_pr_diffs(self) -> None:
         """Load PR diff content in background thread"""
         worker = get_current_worker()
         if worker.is_cancelled:
             return
 
+        if not self.state.current_pr:
+            def handle_no_pr():
+                self.query_one("#diffs_container").loading = False
+                self.notify("No PR selected", severity="error", timeout=1)
+            self.app.call_from_thread(handle_no_pr)
+            return
+
         try:
-            self.app.call_from_thread(self.notify, "Loading diffs...", timeout=1)
+            # Set loading state
+            self.app.call_from_thread(
+                setattr,
+                self.query_one("#diffs_container"),
+                "loading",
+                True
+            )
 
             diff_result: Result[List[FileDiffType], Exception] = self.state.current_pr.get_pr_diff()
             if diff_result.is_err():
-                self.app.call_from_thread(
-                    self.notify,
-                    f"Error loading diff: {diff_result.unwrap_err()}",
-                    severity="error"
-                )
+                def handle_error():
+                    self.query_one("#diffs_container").loading = False
+                    self.notify(
+                        f"Error loading diff: {diff_result.unwrap_err()}",
+                        severity="error",
+                        timeout=1
+                    )
+                self.app.call_from_thread(handle_error)
                 return
 
             file_diffs = diff_result.unwrap()
@@ -86,6 +121,7 @@ class PRDetailScreen(BaseScreen):
             if not worker.is_cancelled:
                 self.state.set_file_diffs(file_diffs)
                 def update_display():
+                    # Format and display diff content
                     diff_content = []
                     for diff in file_diffs:
                         # Add file status if available
@@ -107,66 +143,91 @@ class PRDetailScreen(BaseScreen):
                         diff_content.extend(content)
 
                     self.query_one("#pr_diffs").update("\n".join(diff_content))
+                    self.query_one("#diffs_container").loading = False
 
                 self.app.call_from_thread(update_display)
 
         except Exception as e:
             if not worker.is_cancelled:
-                self.app.call_from_thread(
-                    self.notify,
-                    f"Error loading diffs: {str(e)}",
-                    severity="error",
-                    timeout=100
-                )
+                def handle_error():
+                    self.query_one("#diffs_container").loading = False
+                    self.notify(
+                        f"Error loading diffs: {str(e)}",
+                        severity="error",
+                        timeout=1
+                    )
+                self.app.call_from_thread(handle_error)
 
-    @work(exclusive=True, thread=True)
+
+    @work(thread=True)
     def load_pr_details(self) -> None:
         """Load PR details in background thread"""
         worker = get_current_worker()
         if worker.is_cancelled:
+            log.debug("Worker cancelled, returning early")
             return
 
         try:
+            log.debug("Loading PR details")
             pr = self.state.current_pr
 
             if not pr:
+                log.error("No PR found in state")
                 self.app.call_from_thread(
                     self.notify,
                     "No pull request selected",
-                    severity="error"
+                    severity="error",
+                    timeout=1
                 )
                 return
 
+            log.debug(f"PR data loaded: #{pr.id} - {pr.title}")
+
             def update_display():
-                # Update title
-                self.query_one("#pr_title").update(
-                    f"PR #{pr.id}: {pr.title}"
-                )
+                try:
+                    log.debug("Updating title")
+                    self.query_one("#pr_title").update(
+                        f"PR #{pr.id}: {pr.title}"
+                    )
 
-                # Update metadata
-                meta = [
-                    f"[bold]Author:[/] {pr.author}",
-                    f"[bold]Branch:[/] {pr.branch}",
-                    f"[bold]Status:[/] {pr.status}",
-                    f"[bold]Created:[/] {pr.created}",
-                    "",
-                    "[bold]Reviewers:[/]",
-                    *[f"  • {reviewer}" for reviewer in pr.reviewers],
-                    "",
-                    "[bold]Approvals:[/]",
-                    *[f"  • {approver}" for approver in pr.approvals],
-                    "",
-                    f"[link={pr.web_url}]View in Browser[/link]"
-                ]
-                self.query_one("#pr_meta").update("\n".join(meta))
+                    log.debug("Updating metadata")
+                    meta = [
+                        f"[bold]Author:[/] {pr.author}",
+                        f"[bold]Branch:[/] {pr.branch}",
+                        f"[bold]Status:[/] {pr.status}",
+                        f"[bold]Created:[/] {pr.created}",
+                        "",
+                        "[bold]Reviewers:[/]",
+                        *[f"  • {reviewer}" for reviewer in pr.reviewers],
+                        "",
+                        "[bold]Approvals:[/]",
+                        *[f"  • {approver}" for approver in pr.approvals],
+                        "",
+                        f"[link={pr.web_url}]View in Browser[/link]"
+                    ]
+                    meta_widget = self.query_one("#pr_meta")
+                    if meta_widget:
+                        meta_widget.update("\n".join(meta))
+                    else:
+                        log.error("Could not find #pr_meta widget")
 
-                # Update description with markdown
-                desc = pr.description if pr.description else "*No description provided*"
-                self.query_one("#pr_description", Markdown).update(desc)
+                    log.debug("Updating description")
+                    desc = pr.description if pr.description else "*No description provided*"
+                    desc_widget = self.query_one("#pr_description", Markdown)
+                    if desc_widget:
+                        desc_widget.update(desc)
+                    else:
+                        log.error("Could not find #pr_description widget")
 
+                except Exception as e:
+                    log.error(f"Error in update_display: {str(e)}")
+                    raise
+
+            log.debug("Calling update_display from thread")
             self.app.call_from_thread(update_display)
 
         except Exception as e:
+            log.error(f"Error loading PR details: {str(e)}")
             if not worker.is_cancelled:
                 self.app.call_from_thread(
                     self.notify,
@@ -193,22 +254,22 @@ class PRDetailScreen(BaseScreen):
         pr = self.state.current_pr
         if pr and pr.web_url:
             webbrowser.open(pr.web_url, new=2)
-            self.notify("Opening PR in browser...")
+            self.notify("Opening PR in browser...", timeout=1)
         else:
-            self.notify("Unable to open PR in browser", severity="error")
+            self.notify("Unable to open PR in browser", severity="error", timeout=1)
 
     def action_approve(self) -> None:
         """Approve the PR (not implemented)"""
-        self.notify("PR approval not implemented yet", severity="warning")
+        self.notify("PR approval not implemented yet", severity="warning", timeout=1)
 
     def action_comment(self) -> None:
         """Add a comment to the PR (not implemented)"""
-        self.notify("PR commenting not implemented yet", severity="warning")
+        self.notify("PR commenting not implemented yet", severity="warning", timeout=1)
 
     def on_worker_state_changed(self, event: Worker.StateChanged) -> None:
         """Handle worker state changes"""
         if event.worker.name in ["load_pr_diffs", "load_pr_details"]:
             if event.state == "cancelled":
-                self.notify(f"{event.worker.name} cancelled", severity="warning")
+                self.notify(f"{event.worker.name} cancelled", severity="warning", timeout=1)
             elif event.state == "error":
-                self.notify(f"Error in {event.worker.name}: {event.worker.error}", severity="error")
+                self.notify(f"Error in {event.worker.name}: {event.worker.error}", severity="error", timeout=1)
