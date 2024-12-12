@@ -56,7 +56,7 @@ class PRReviewApp(App[None]):
     }
     """
 
-    TITLE = "Bitbucket PR Review"
+    TITLE = "Bitbucket Cloud"
     SCREENS = {
         "pr_list": PRListScreen,
         "pr_detail": PRDetailScreen,
