@@ -11,6 +11,8 @@ from bb.core.git import get_pr_diff
 from bb.models import FileDiff
 from bb.tui.screens.base import BaseScreen
 
+# TODO - this entire screen should just be integrated into the detail view.
+# reuse what makes sense, delete the rest.
 
 class PRDiffScreen(BaseScreen):
     """Screen for viewing pull request diffs"""
@@ -39,7 +41,7 @@ class PRDiffScreen(BaseScreen):
         if self.state.current_pr:
             self.load_diff()
         else:
-            self.notify("No PR selected", severity="error")
+            self.notify("No PR selected", severity="error", timeout=1)
             self.action_back()
 
     @work(exclusive=True, thread=True)
@@ -50,7 +52,7 @@ class PRDiffScreen(BaseScreen):
             return
 
         try:
-            self.app.call_from_thread(self.notify, "Loading diff...", timeout=None)
+            self.app.call_from_thread(self.notify, "Loading diff...", timeout=1)
 
             # Get diff content using git command
             diff_result = get_pr_diff(self.state.current_pr.branch)
@@ -137,14 +139,14 @@ class PRDiffScreen(BaseScreen):
             self.state.current_file_index < len(self.state.file_diffs) - 1):
             self.state.current_file_index += 1
             self.display_current_diff()
-            self.notify(f"Showing file {self.state.current_file_index + 1} of {len(self.state.file_diffs)}")
+            self.notify(f"Showing file {self.state.current_file_index + 1} of {len(self.state.file_diffs)}", timeout=1)
 
     def action_prev_file(self) -> None:
         """Show previous file diff"""
         if self.state.file_diffs and self.state.current_file_index > 0:
             self.state.current_file_index -= 1
             self.display_current_diff()
-            self.notify(f"Showing file {self.state.current_file_index + 1} of {len(self.state.file_diffs)}")
+            self.notify(f"Showing file {self.state.current_file_index + 1} of {len(self.state.file_diffs)}", timeout=1)
 
     def action_scroll_down(self) -> None:
         """Scroll diff content down"""
