@@ -1,5 +1,7 @@
 """Pull request list screen module"""
 
+from typing import Literal
+
 from textual import work
 from textual.app import ComposeResult
 from textual.binding import Binding
@@ -7,6 +9,7 @@ from textual.widgets import DataTable, Footer, Header
 from textual.worker import Worker, get_current_worker
 
 from bb.core.api import WEB_BASE_URL, get_prs
+from bb.core.config import BBConfig
 from bb.exceptions import IPWhitelistException
 from bb.models import PullRequest
 from bb.tui.screens.base import BaseScreen
@@ -21,9 +24,16 @@ class PRListScreen(BaseScreen):
         Binding("v", "view_details", "View Details", show=True),
         Binding("D", "view_diff", "View Diff", show=True),
         Binding("r", "refresh", "Refresh", show=True),
+        Binding("a", "show_all", "Show All PRs", show=True),
+        Binding("m", "show_mine", "Show My PRs", show=True),
+        Binding("n", "show_reviewing", "Show PRs to Review", show=True),
         Binding("/", "search", "Search", show=True),
         Binding("q", "quit", "Quit", show=True),
     ]
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.current_filter: Literal["_all", "mine", "reviewing"] = "mine"
 
     def compose(self) -> ComposeResult:
         """Create child widgets for the screen"""
@@ -58,17 +68,34 @@ class PRListScreen(BaseScreen):
             # Clear existing table
             table = self.query_one("#pr_table", DataTable)
             self.app.call_from_thread(table.clear)
-            self.app.call_from_thread(self.notify, "Loading pull requests...", timeout=1)
+
+            filter_msg = {
+                "_all": "Loading all pull requests...",
+                "mine": "Loading your pull requests...",
+                "reviewing": "Loading pull requests to review..."
+            }.get(self.current_filter, "Loading pull requests...")
+
+            self.app.call_from_thread(self.notify, filter_msg, timeout=1)
+
+            # Get configuration for BB API
+            conf = BBConfig()
+            uuid = f'"{conf.get("auth.uuid")}"'
+
+            # Construct query based on current filter
+            q = {
+                "_all": 'state="OPEN"',
+                "mine": f'state="OPEN" AND author.uuid={uuid}',
+                "reviewing": f'state="OPEN" AND reviewers.uuid={uuid}'
+            }[self.current_filter]
 
             # Fetch PRs
-            # TODO - Replace this with a call to a Repository.get_prs or something
-            prs_result = get_prs(self.state.repo_slug, _all=True)
+            prs_result = get_prs(self.state.repo_slug, **{self.current_filter: True})
             if prs_result.is_err():
                 error = prs_result.unwrap_err()
                 if isinstance(error, IPWhitelistException):
                     self.app.call_from_thread(
                         self.notify,
-                        "IP not whitelisted. Please check your BitBucket settings.",
+                        "IP not whitelisted. Please check your Bitbucket settings.",
                         severity="error"
                     )
                 else:
@@ -99,11 +126,24 @@ class PRListScreen(BaseScreen):
                             table.move_cursor(row=0)
                     self.app.call_from_thread(update_table)
                 else:
-                    self.app.call_from_thread(self.notify, "No pull requests found", severity="warning")
+                    filter_type = {
+                        "_all": "open pull requests",
+                        "mine": "pull requests authored by you",
+                        "reviewing": "pull requests for you to review"
+                    }[self.current_filter]
+                    self.app.call_from_thread(
+                        self.notify,
+                        f"No {filter_type} found",
+                        severity="warning"
+                    )
 
         except Exception as e:
             if not worker.is_cancelled:
-                self.app.call_from_thread(self.notify, f"Error loading PRs: {str(e)}", severity="error")
+                self.app.call_from_thread(
+                    self.notify,
+                    f"Error loading PRs: {str(e)}",
+                    severity="error"
+                )
 
     def action_cursor_down(self) -> None:
         """Move cursor down"""
@@ -137,8 +177,23 @@ class PRListScreen(BaseScreen):
             self.state.set_current_pr(self.state.prs[current_row])
             self.app.push_screen("pr_diff")
 
+    def action_show_all(self) -> None:
+        """Show all open PRs"""
+        self.current_filter = "_all"
+        self.load_prs()
+
+    def action_show_mine(self) -> None:
+        """Show PRs authored by current user"""
+        self.current_filter = "mine"
+        self.load_prs()
+
+    def action_show_reviewing(self) -> None:
+        """Show PRs where current user is a reviewer"""
+        self.current_filter = "reviewing"
+        self.load_prs()
+
     def action_refresh(self) -> None:
-        """Refresh PR list"""
+        """Refresh PR list with current filter"""
         self.load_prs()
 
     def action_quit(self) -> None:
@@ -152,4 +207,3 @@ class PRListScreen(BaseScreen):
                 self.notify("PR loading cancelled", severity="warning")
             elif event.state == "error":
                 self.notify(f"Error loading PRs: {event.worker.error}", severity="error")
-
