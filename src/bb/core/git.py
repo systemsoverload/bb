@@ -188,13 +188,16 @@ def diff(cached: bool = False, files: Optional[List[str]] = None) -> Result:
     return GitCommand('diff', *args).run()
 
 # Remote Operations
-def fetch(remote: Optional[str] = None, all: bool = False) -> Result:
+def fetch(remote: Optional[str] = "origin", _all: bool = False, branch_name: str = "") -> Result:
     """Fetch from remote"""
-    args = []
-    if all:
+    args = [remote,]
+
+    if _all:
         args.append('--all')
-    elif remote:
-        args.append(remote)
+
+    if branch_name:
+        args.append(branch_name)
+
     return GitCommand('fetch', *args).run()
 
 def pull(remote: str = 'origin', branch: Optional[str] = None) -> Result:
@@ -321,11 +324,16 @@ def get_default_branch() -> Result:
     except Exception as e:
         return Err(e)
 
+def get_pr_diff(src_branch: str) -> Result:
+    """Get the diff for a specific pull request"""
+    # TODO - pass in the dest branch
+    cmd = GitCommand('diff', f'origin/main...origin/{src_branch}')
+    return cmd.run()
+
 def edit_tmp_file(contents: str = "") -> Result:
     """Open a tempfile with git's configured editor and return the value written when saving/closing.
     Returns a tuple of (title, description) split on '------'."""
     from tempfile import NamedTemporaryFile
-    import subprocess
 
     try:
         # Get the configured editor using GitCommand

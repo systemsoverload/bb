@@ -126,7 +126,7 @@ def get_default_description(full_slug: str, src: str, dest: str) -> Result:
 
 def get_recommended_reviewers(full_slug: str) -> Result:
     conf = BBConfig()
-    url = f"{BASE_URL}/internal/repositories/bitbucket/core/recommended-reviewers"
+    url = f"{BASE_URL}/internal/repositories/{full_slug}/recommended-reviewers"
     res = requests.get(
         url,
         auth=(conf.get("auth.username"), conf.get("auth.app_password")),
