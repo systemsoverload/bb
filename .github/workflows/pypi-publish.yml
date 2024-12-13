@@ -31,4 +31,4 @@ jobs:
         env:
           PYPI_TOKEN: ${{ secrets.PYPI_TOKEN }}
         run: |
-          rye publish --token $PYPI_TOKEN
+          rye publish --token $PYPI_TOKEN --yes
