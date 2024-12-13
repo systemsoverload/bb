@@ -32,7 +32,7 @@ def remove(alias_name):
 @alias.command()
 def list():
     conf = BBConfig()
-    aliases = conf.get('alias')
+    aliases = conf.get("alias")
     if not aliases:
         print("[bold]no aliases defined")
         return

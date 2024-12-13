@@ -40,7 +40,9 @@ def repo_context_command(fn):
         try:
             repo_slug = get_current_repo_slug().unwrap()
         except CalledProcessError:
-            print("[bold][red]Command called outside of the context of a git repository")
+            print(
+                "[bold][red]Command called outside of the context of a git repository"
+            )
             return
         except RuntimeError:
             print("[red][bold]Error:[/] Repository has no bitbucket remotes")

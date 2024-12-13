@@ -5,13 +5,24 @@ from rich.console import Console
 from rich.table import Table
 from rich.text import Text
 
-from bb.core.api import (WEB_BASE_URL, create_pr, get_codeowners,
-                         get_default_description, get_prs,
-                         get_recommended_reviewers)
-from bb.core.git import (GitPushRejectedException, IPWhitelistException,
-                         edit_tmp_file, get_branch, get_current_branch,
-                         get_current_diff_to_main, get_default_branch,
-                         push_branch)
+from bb.core.api import (
+    WEB_BASE_URL,
+    create_pr,
+    get_codeowners,
+    get_default_description,
+    get_prs,
+    get_recommended_reviewers,
+)
+from bb.core.git import (
+    GitPushRejectedException,
+    IPWhitelistException,
+    edit_tmp_file,
+    get_branch,
+    get_current_branch,
+    get_current_diff_to_main,
+    get_default_branch,
+    push_branch,
+)
 from bb.live_table import SelectableRow, generate_live_table
 from bb.typeshed import User
 from bb.utils import repo_context_command
@@ -93,9 +104,21 @@ def list(repo_slug, _all, mine, reviewing):
 # TODO - Should we allow manual inputs here? Do we need to prompt the user for this data if the API call fails?
 # @click.option("--title", "-t", help="PR title")
 # @click.option("--description", "-d", help="PR description")
-@click.option("--src", "-s", help="Source branch for pull request (default [current branch])")
-@click.option("--dest", "-d", help="Destination branch for pull request (default [current branch])")
-@click.option("--close-source-branch", "-c", is_flag=True, default=True, help="Close source branch after merge [bool]")
+@click.option(
+    "--src", "-s", help="Source branch for pull request (default [current branch])"
+)
+@click.option(
+    "--dest",
+    "-d",
+    help="Destination branch for pull request (default [current branch])",
+)
+@click.option(
+    "--close-source-branch",
+    "-c",
+    is_flag=True,
+    default=True,
+    help="Close source branch after merge [bool]",
+)
 @repo_context_command
 def create(repo_slug, close_source_branch, src, dest):
     # TODO - Check if the PR exists on BB already
@@ -110,7 +133,9 @@ def create(repo_slug, close_source_branch, src, dest):
 
     dest = dest or get_default_branch().unwrap()
 
-    print(f"Creating new pull request for [bold blue]{src}[/] into [bold blue]{dest}[/] for {repo_slug}")
+    print(
+        f"Creating new pull request for [bold blue]{src}[/] into [bold blue]{dest}[/] for {repo_slug}"
+    )
     if not get_current_diff_to_main().unwrap():
         return print("[bold red]Aborting - no changes on local branch")
 
@@ -126,7 +151,9 @@ def create(repo_slug, close_source_branch, src, dest):
     with Console().status("Generating PR Description"):
         dd_res = get_default_description(repo_slug, src, dest).unwrap().json()
         try:
-            title, description = edit_tmp_file(f"{dd_res['title']}\n------\n{dd_res['description']}").unwrap()
+            title, description = edit_tmp_file(
+                f"{dd_res['title']}\n------\n{dd_res['description']}"
+            ).unwrap()
         except ValueError:
             print("[bold red]Aborting due to empty description")
             return
@@ -144,10 +171,10 @@ def create(repo_slug, close_source_branch, src, dest):
     rows = []
 
     # Wrap reviewer names in Text objects to apply UUID as hidden meta data
-    owner_names = [c['display_name'] for c in code_owners]
+    owner_names = [c["display_name"] for c in code_owners]
 
     for rev in recommended_reviewers:
-        if rev['display_name'] not in owner_names:
+        if rev["display_name"] not in owner_names:
             name = Text(rev["display_name"])
             name.apply_meta({"uuid": rev["uuid"]})
             rows.append(SelectableRow([name], selected=False))
@@ -159,12 +186,18 @@ def create(repo_slug, close_source_branch, src, dest):
 
     reviewers = [
         User(display_name=u[0].plain, uuid=u[0].spans[0].style.meta["uuid"])
-        for u in generate_live_table("\n\n[bold]Select Reviewers[/bold]\n(space to select, enter to submit)", headers, rows)
+        for u in generate_live_table(
+            "\n\n[bold]Select Reviewers[/bold]\n(space to select, enter to submit)",
+            headers,
+            rows,
+        )
     ]
 
     try:
         with Console().status("Creating pull request"):
-            res = create_pr(repo_slug, title, src, dest, description, close_source_branch, reviewers).unwrap()
+            res = create_pr(
+                repo_slug, title, src, dest, description, close_source_branch, reviewers
+            ).unwrap()
         print(f"Successfully created PR - {res.json()['links']['html']['href']}")
     except HTTPError as exc:
         # TODO - Handle possible errors here - eg 400 if no diff commits in branch
@@ -176,4 +209,5 @@ def create(repo_slug, close_source_branch, src, dest):
 def review(repo_slug):
     """Interactive TUI for reviewing pull requests"""
     from bb.tui import review_prs
+
     review_prs(repo_slug)

@@ -9,8 +9,6 @@ from rich.table import Table
 SELECTED = Style(color="blue", bgcolor="white", bold=True)
 
 
-
-
 @dataclass
 class SelectableRow:
     data: list
@@ -27,7 +25,6 @@ class SelectableRow:
 
 
 def generate_table(console, title, headers, rows: list[SelectableRow], cur) -> Table:
-
     table = Table(title=title)
 
     table.add_column("selected")
@@ -66,7 +63,11 @@ def generate_live_table(title, headers, rows: list[SelectableRow]) -> list:
     # app with buttons and various widgets, but this works fine for now.
     console = Console()
     cur = 0
-    with Live(generate_table(console, title, headers, rows, cur), auto_refresh=False, transient=True) as live:
+    with Live(
+        generate_table(console, title, headers, rows, cur),
+        auto_refresh=False,
+        transient=True,
+    ) as live:
         while True:
             ch = readkey()
 
@@ -79,7 +80,9 @@ def generate_live_table(title, headers, rows: list[SelectableRow]) -> list:
             if ch == key.ENTER:
                 live.stop()
                 break
-            live.update(generate_table(console, title, headers, rows, cur), refresh=True)
+            live.update(
+                generate_table(console, title, headers, rows, cur), refresh=True
+            )
 
     # Return "selected" rows, minus the selection state column
     return [i.data[1:] for i in rows if i.selected]

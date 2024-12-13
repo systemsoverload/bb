@@ -9,6 +9,6 @@ if TYPE_CHECKING:
     PullRequestType = PullRequest
 
 else:
-    AppType = TypeVar('AppType')
-    FileDiffType = TypeVar('FileDiff')
-    PullRequestType = TypeVar('PullRequest')
+    AppType = TypeVar("AppType")
+    FileDiffType = TypeVar("FileDiff")
+    PullRequestType = TypeVar("PullRequest")

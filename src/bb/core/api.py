@@ -8,7 +8,9 @@ BASE_URL = "https://api.bitbucket.org"
 WEB_BASE_URL = "https://bitbucket.org"
 
 
-def get_prs(full_slug: str, _all: bool = False, reviewing: bool = False, mine: bool = False) -> Result:
+def get_prs(
+    full_slug: str, _all: bool = False, reviewing: bool = False, mine: bool = False
+) -> Result:
     conf = BBConfig()
     q = None
     uuid = f'"{conf.get("auth.uuid")}"'
@@ -24,8 +26,8 @@ def get_prs(full_slug: str, _all: bool = False, reviewing: bool = False, mine: b
             [
                 "+values.participants",
                 # TODO - maybe make these configurable for thin responses on the list view?
-                #"-values.description",
-                #"-values.source",
+                # "-values.description",
+                # "-values.source",
                 "-values.summary",
                 "-values.links",
                 "-values.destination",
@@ -47,11 +49,15 @@ def get_prs(full_slug: str, _all: bool = False, reviewing: bool = False, mine: b
         res.raise_for_status()
     except requests.HTTPError as exc:
         # TODO - more generic handling of IPWL blocks
-        if exc.response.status_code == 403 and "whitelist" in exc.response.content.decode(
-            exc.response.encoding or "utf-8"
+        if (
+            exc.response.status_code == 403
+            and "whitelist"
+            in exc.response.content.decode(exc.response.encoding or "utf-8")
         ):
             return Err(
-                IPWhitelistException("[bold red] 403 fetching pull requests, ensure your IP has been whitelisted")
+                IPWhitelistException(
+                    "[bold red] 403 fetching pull requests, ensure your IP has been whitelisted"
+                )
             )
         else:
             return Err(exc)
@@ -60,7 +66,13 @@ def get_prs(full_slug: str, _all: bool = False, reviewing: bool = False, mine: b
 
 
 def create_pr(
-    full_slug: str, title: str, src: str, dest: str, description: str, close_source_branch: str, reviewers: list[User]
+    full_slug: str,
+    title: str,
+    src: str,
+    dest: str,
+    description: str,
+    close_source_branch: str,
+    reviewers: list[User],
 ) -> Result:
     conf = BBConfig()
 

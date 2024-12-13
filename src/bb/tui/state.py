@@ -7,6 +7,7 @@ from bb.tui.types import FileDiffType, PullRequestType
 
 class PRState:
     """Global application state"""
+
     def __init__(self, repo_slug: str):
         self.repo_slug = repo_slug
         self.prs: List[PullRequestType] = []

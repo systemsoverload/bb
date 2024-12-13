@@ -14,6 +14,7 @@ from bb.tui.screens.base import BaseScreen
 # TODO - this entire screen should just be integrated into the detail view.
 # reuse what makes sense, delete the rest.
 
+
 class PRDiffScreen(BaseScreen):
     """Screen for viewing pull request diffs"""
 
@@ -31,8 +32,7 @@ class PRDiffScreen(BaseScreen):
         """Create child widgets for the screen"""
         yield Header()
         yield ScrollableContainer(
-            Static(id="diff_content", classes="diff-content"),
-            id="diff_container"
+            Static(id="diff_content", classes="diff-content"), id="diff_container"
         )
         yield Footer()
 
@@ -60,7 +60,7 @@ class PRDiffScreen(BaseScreen):
                 self.app.call_from_thread(
                     self.notify,
                     f"Error loading diff: {diff_result.unwrap_err()}",
-                    severity="error"
+                    severity="error",
                 )
                 return
 
@@ -84,16 +84,16 @@ class PRDiffScreen(BaseScreen):
 
             if not worker.is_cancelled:
                 self.state.set_file_diffs(file_diffs)
+
                 def update_display():
                     self.display_current_diff()
+
                 self.app.call_from_thread(update_display)
 
         except Exception as e:
             if not worker.is_cancelled:
                 self.app.call_from_thread(
-                    self.notify,
-                    f"Error loading diff: {str(e)}",
-                    severity="error"
+                    self.notify, f"Error loading diff: {str(e)}", severity="error"
                 )
 
     def format_diff_line(self, line: str) -> str:
@@ -121,32 +121,37 @@ class PRDiffScreen(BaseScreen):
             f"[bold]File {self.state.current_file_index + 1} of {len(self.state.file_diffs)}:[/]",
             f"[bold yellow]{current_diff.filename}[/]",
             f"[bold]Changes:[/] [green]+{current_diff.stats['additions']}[/] [red]-{current_diff.stats['deletions']}[/]",
-            ""
+            "",
         ]
 
         # Format each line of the diff
-        diff_lines = [
-            self.format_diff_line(line)
-            for line in current_diff.lines
-        ]
+        diff_lines = [self.format_diff_line(line) for line in current_diff.lines]
 
         content.extend(diff_lines)
         self.query_one("#diff_content").update("\n".join(content))
 
     def action_next_file(self) -> None:
         """Show next file diff"""
-        if (self.state.file_diffs and
-            self.state.current_file_index < len(self.state.file_diffs) - 1):
+        if (
+            self.state.file_diffs
+            and self.state.current_file_index < len(self.state.file_diffs) - 1
+        ):
             self.state.current_file_index += 1
             self.display_current_diff()
-            self.notify(f"Showing file {self.state.current_file_index + 1} of {len(self.state.file_diffs)}", timeout=1)
+            self.notify(
+                f"Showing file {self.state.current_file_index + 1} of {len(self.state.file_diffs)}",
+                timeout=1,
+            )
 
     def action_prev_file(self) -> None:
         """Show previous file diff"""
         if self.state.file_diffs and self.state.current_file_index > 0:
             self.state.current_file_index -= 1
             self.display_current_diff()
-            self.notify(f"Showing file {self.state.current_file_index + 1} of {len(self.state.file_diffs)}", timeout=1)
+            self.notify(
+                f"Showing file {self.state.current_file_index + 1} of {len(self.state.file_diffs)}",
+                timeout=1,
+            )
 
     def action_scroll_down(self) -> None:
         """Scroll diff content down"""

@@ -1,11 +1,28 @@
 import click
 from rich.console import Console
 
-from bb.core.git import (amend_commit, clean, commit, create_branch,
-                         create_tag, delete_branch, delete_tag, diff, fetch,
-                         get_config, list_tags, print_branch_list,
-                         print_status, pull, push, rename_branch, set_config,
-                         stash_list, stash_pop, stash_save)
+from bb.core.git import (
+    amend_commit,
+    clean,
+    commit,
+    create_branch,
+    create_tag,
+    delete_branch,
+    delete_tag,
+    diff,
+    fetch,
+    get_config,
+    list_tags,
+    print_branch_list,
+    print_status,
+    pull,
+    push,
+    rename_branch,
+    set_config,
+    stash_list,
+    stash_pop,
+    stash_save,
+)
 from bb.typeshed import Ok, Result
 
 
@@ -17,15 +34,15 @@ def git():
 
 # Status Commands
 @git.command(name="status")
-@click.option('--short', '-s', is_flag=True, help='Show status in short format')
+@click.option("--short", "-s", is_flag=True, help="Show status in short format")
 def status_cmd(short):
     """Show working tree status"""
     print_status()
 
 
 @git.command(name="diff")
-@click.option('--cached', '-c', is_flag=True, help='Show staged changes')
-@click.argument('files', nargs=-1)
+@click.option("--cached", "-c", is_flag=True, help="Show staged changes")
+@click.argument("files", nargs=-1)
 def diff_cmd(cached, files):
     """Show changes between commits, commit and working tree, etc"""
     result: Result = diff(cached, list(files) if files else None)
@@ -43,15 +60,15 @@ def branch():
 
 
 @branch.command(name="list")
-@click.option('--remote', '-r', is_flag=True, help='List remote branches')
+@click.option("--remote", "-r", is_flag=True, help="List remote branches")
 def list_branches_cmd(remote):
     """List branches"""
     print_branch_list()
 
 
 @branch.command(name="create")
-@click.argument('name')
-@click.option('--start-point', '-s', help='Starting point for new branch')
+@click.argument("name")
+@click.option("--start-point", "-s", help="Starting point for new branch")
 def create_cmd(name, start_point):
     """Create a new branch"""
     result = create_branch(name, start_point)
@@ -62,8 +79,8 @@ def create_cmd(name, start_point):
 
 
 @branch.command(name="delete")
-@click.argument('name')
-@click.option('--force', '-f', is_flag=True, help='Force delete branch')
+@click.argument("name")
+@click.option("--force", "-f", is_flag=True, help="Force delete branch")
 def delete_cmd(name, force):
     """Delete a branch"""
     result = delete_branch(name, force)
@@ -74,8 +91,8 @@ def delete_cmd(name, force):
 
 
 @branch.command(name="rename")
-@click.argument('old_name')
-@click.argument('new_name')
+@click.argument("old_name")
+@click.argument("new_name")
 def rename_cmd(old_name, new_name):
     """Rename a branch"""
     result = rename_branch(old_name, new_name)
@@ -87,8 +104,8 @@ def rename_cmd(old_name, new_name):
 
 # Commit Commands
 @git.command(name="commit")
-@click.option('--message', '-m', required=True, help='Commit message')
-@click.argument('files', nargs=-1)
+@click.option("--message", "-m", required=True, help="Commit message")
+@click.argument("files", nargs=-1)
 def commit_cmd(message, files):
     """Record changes to the repository"""
     result = commit(message, list(files) if files else None)
@@ -99,7 +116,7 @@ def commit_cmd(message, files):
 
 
 @git.command(name="amend")
-@click.option('--message', '-m', help='New commit message')
+@click.option("--message", "-m", help="New commit message")
 def amend_cmd(message):
     """Amend the last commit"""
     result = amend_commit(message)
@@ -111,8 +128,8 @@ def amend_cmd(message):
 
 # Remote Operations
 @git.command(name="pull")
-@click.option('--remote', '-r', default='origin', help='Remote name')
-@click.option('--branch', '-b', help='Branch name')
+@click.option("--remote", "-r", default="origin", help="Remote name")
+@click.option("--branch", "-b", help="Branch name")
 def pull_cmd(remote, branch):
     """Fetch from and integrate with another repository or branch"""
     with Console().status(f"Pulling from {remote}..."):
@@ -124,9 +141,9 @@ def pull_cmd(remote, branch):
 
 
 @git.command(name="push")
-@click.option('--remote', '-r', default='origin', help='Remote name')
-@click.option('--branch', '-b', help='Branch name')
-@click.option('--force', '-f', is_flag=True, help='Force push')
+@click.option("--remote", "-r", default="origin", help="Remote name")
+@click.option("--branch", "-b", help="Branch name")
+@click.option("--force", "-f", is_flag=True, help="Force push")
 def push_cmd(remote, branch, force):
     """Update remote refs along with associated objects"""
     result = push(remote, branch, force)
@@ -137,8 +154,8 @@ def push_cmd(remote, branch, force):
 
 
 @git.command(name="fetch")
-@click.option('--remote', '-r', help='Remote to fetch from')
-@click.option('--all', '-a', is_flag=True, help='Fetch all remotes')
+@click.option("--remote", "-r", help="Remote to fetch from")
+@click.option("--all", "-a", is_flag=True, help="Fetch all remotes")
 def fetch_cmd(remote, all):
     """Download objects and refs from another repository"""
     result = fetch(remote, all)
@@ -155,8 +172,8 @@ def stash():
     pass
 
 
-@stash.command(name='save')
-@click.option('--message', '-m', help='Stash message')
+@stash.command(name="save")
+@click.option("--message", "-m", help="Stash message")
 def stash_save_cmd(message):
     """Save changes to stash"""
     result = stash_save(message)
@@ -166,8 +183,8 @@ def stash_save_cmd(message):
         print(f"Error stashing changes: {result.unwrap_err()}")
 
 
-@stash.command(name='pop')
-@click.option('--index', '-i', default=0, help='Stash index to pop')
+@stash.command(name="pop")
+@click.option("--index", "-i", default=0, help="Stash index to pop")
 def stash_pop_cmd(index):
     """Pop changes from stash"""
     result = stash_pop(index)
@@ -177,7 +194,7 @@ def stash_pop_cmd(index):
         print(f"Error applying stashed changes: {result.unwrap_err()}")
 
 
-@stash.command(name='list')
+@stash.command(name="list")
 def stash_list_cmd():
     """List stashed changes"""
     result = stash_list()
@@ -194,9 +211,9 @@ def tag():
     pass
 
 
-@tag.command(name='create')
-@click.argument('name')
-@click.option('--message', '-m', help='Tag message')
+@tag.command(name="create")
+@click.argument("name")
+@click.option("--message", "-m", help="Tag message")
 def create_tag_cmd(name, message):
     """Create a new tag"""
     result = create_tag(name, message)
@@ -206,8 +223,8 @@ def create_tag_cmd(name, message):
         print(f"Error creating tag: {result.unwrap_err()}")
 
 
-@tag.command(name='delete')
-@click.argument('name')
+@tag.command(name="delete")
+@click.argument("name")
 def delete_tag_cmd(name):
     """Delete a tag"""
     result = delete_tag(name)
@@ -217,7 +234,7 @@ def delete_tag_cmd(name):
         print(f"Error deleting tag: {result.unwrap_err()}")
 
 
-@tag.command(name='list')
+@tag.command(name="list")
 def list_tags_cmd():
     """List tags"""
     result = list_tags()
@@ -234,9 +251,9 @@ def config():
     pass
 
 
-@config.command(name='get')
-@click.argument('key')
-@click.option('--global', '-g', 'global_', is_flag=True, help='Use global config')
+@config.command(name="get")
+@click.argument("key")
+@click.option("--global", "-g", "global_", is_flag=True, help="Use global config")
 def get_config_cmd(key, global_):
     """Get config value"""
     result = get_config(key, global_)
@@ -246,10 +263,10 @@ def get_config_cmd(key, global_):
         print(f"Error getting config: {result.unwrap_err()}")
 
 
-@config.command(name='set')
-@click.argument('key')
-@click.argument('value')
-@click.option('--global', '-g', 'global_', is_flag=True, help='Use global config')
+@config.command(name="set")
+@click.argument("key")
+@click.argument("value")
+@click.option("--global", "-g", "global_", is_flag=True, help="Use global config")
 def set_config_cmd(key, value, global_):
     """Set config value"""
     result = set_config(key, value, global_)
@@ -261,8 +278,10 @@ def set_config_cmd(key, value, global_):
 
 # Cleanup Commands
 @git.command()
-@click.option('--force', '-f', is_flag=True, help='Force clean untracked files')
-@click.option('--directories', '-d', is_flag=True, help='Remove untracked directories too')
+@click.option("--force", "-f", is_flag=True, help="Force clean untracked files")
+@click.option(
+    "--directories", "-d", is_flag=True, help="Remove untracked directories too"
+)
 def clean_cmd(force, directories):
     """Clean untracked files from working tree"""
     result = clean(force, directories)

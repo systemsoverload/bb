@@ -72,7 +72,7 @@ class PRListScreen(BaseScreen):
             filter_msg = {
                 "_all": "Loading all pull requests...",
                 "mine": "Loading your pull requests...",
-                "reviewing": "Loading pull requests to review..."
+                "reviewing": "Loading pull requests to review...",
             }.get(self.current_filter, "Loading pull requests...")
 
             self.app.call_from_thread(self.notify, filter_msg, timeout=1)
@@ -85,7 +85,7 @@ class PRListScreen(BaseScreen):
             q = {
                 "_all": 'state="OPEN"',
                 "mine": f'state="OPEN" AND author.uuid={uuid}',
-                "reviewing": f'state="OPEN" AND reviewers.uuid={uuid}'
+                "reviewing": f'state="OPEN" AND reviewers.uuid={uuid}',
             }[self.current_filter]
 
             # Fetch PRs
@@ -96,13 +96,13 @@ class PRListScreen(BaseScreen):
                     self.app.call_from_thread(
                         self.notify,
                         "IP not whitelisted. Please check your Bitbucket settings.",
-                        severity="error"
+                        severity="error",
                     )
                 else:
                     self.app.call_from_thread(
                         self.notify,
                         f"Error loading PRs: {str(error)}",
-                        severity="error"
+                        severity="error",
                     )
                 return
 
@@ -110,7 +110,10 @@ class PRListScreen(BaseScreen):
             if not worker.is_cancelled:
                 if prs_data:
                     # Update state and table
-                    self.state.prs = [PullRequest.from_api_response(pr, self.state.repo_slug) for pr in prs_data]
+                    self.state.prs = [
+                        PullRequest.from_api_response(pr, self.state.repo_slug)
+                        for pr in prs_data
+                    ]
 
                     def update_table():
                         table.clear()
@@ -120,29 +123,26 @@ class PRListScreen(BaseScreen):
                                 pr.title,
                                 pr.author,
                                 pr.status,
-                                str(len(pr.approvals))
+                                str(len(pr.approvals)),
                             )
                         if table.row_count > 0:
                             table.move_cursor(row=0)
+
                     self.app.call_from_thread(update_table)
                 else:
                     filter_type = {
                         "_all": "open pull requests",
                         "mine": "pull requests authored by you",
-                        "reviewing": "pull requests for you to review"
+                        "reviewing": "pull requests for you to review",
                     }[self.current_filter]
                     self.app.call_from_thread(
-                        self.notify,
-                        f"No {filter_type} found",
-                        severity="warning"
+                        self.notify, f"No {filter_type} found", severity="warning"
                     )
 
         except Exception as e:
             if not worker.is_cancelled:
                 self.app.call_from_thread(
-                    self.notify,
-                    f"Error loading PRs: {str(e)}",
-                    severity="error"
+                    self.notify, f"Error loading PRs: {str(e)}", severity="error"
                 )
 
     def action_cursor_down(self) -> None:
@@ -206,4 +206,6 @@ class PRListScreen(BaseScreen):
             if event.state == "cancelled":
                 self.notify("PR loading cancelled", severity="warning")
             elif event.state == "error":
-                self.notify(f"Error loading PRs: {event.worker.error}", severity="error")
+                self.notify(
+                    f"Error loading PRs: {event.worker.error}", severity="error"
+                )

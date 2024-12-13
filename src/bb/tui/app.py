@@ -1,4 +1,5 @@
 """Main TUI application class"""
+
 from textual.app import App
 from textual.binding import Binding
 
@@ -8,6 +9,7 @@ from bb.tui.state import PRState
 
 class PRReviewApp(App[None]):
     """Bitbucket Pull Request review application"""
+
     CSS = """
     #pr_table {
         height: 1fr;
@@ -60,7 +62,7 @@ class PRReviewApp(App[None]):
     SCREENS = {
         "pr_list": PRListScreen,
         "pr_detail": PRDetailScreen,
-        "pr_diff": PRDiffScreen
+        "pr_diff": PRDiffScreen,
     }
 
     def __init__(self, repo_slug: str):
@@ -68,10 +70,8 @@ class PRReviewApp(App[None]):
         # XXX - Setup textual logger for local dev - this might be better behind a flag
         from textual.logging import TextualHandler
         import logging
-        logging.basicConfig(
-            level=logging.DEBUG,
-            handlers=[TextualHandler()]
-        )
+
+        logging.basicConfig(level=logging.DEBUG, handlers=[TextualHandler()])
 
         # TODO - replace this with an instance of Repository model
         self.state = PRState(repo_slug)
