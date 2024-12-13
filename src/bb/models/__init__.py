@@ -2,6 +2,7 @@ from dataclasses import dataclass
 from enum import Enum, auto
 from typing import Dict, Optional
 
+from .base import BaseModel  # noqa
 from .file_diff import FileDiff  # noqa
 from .pullrequest import PullRequest  # noqa
 from .repository import Repository  # noqa
@@ -34,4 +35,12 @@ class Branch:
     target: Dict
 
 
-__all__ = ["FileDiff", "PullRequest", "Branch", "User", "ViewState", "Repository"]
+__all__ = [
+    "FileDiff",
+    "PullRequest",
+    "Branch",
+    "User",
+    "ViewState",
+    "Repository",
+    "BaseModel",
+]

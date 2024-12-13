@@ -1,11 +1,11 @@
-import requests
-
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from typing import ClassVar, Optional, Type, TypeVar
 
+import requests
+
 from bb.core.config import BBConfig
-from bb.typeshed import Result, Ok, Err
+from bb.typeshed import Err, Ok, Result
 
 T = TypeVar("T", bound="BaseModel")
 

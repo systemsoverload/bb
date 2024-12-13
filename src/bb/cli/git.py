@@ -1,28 +1,11 @@
 import click
 from rich.console import Console
 
-from bb.core.git import (
-    amend_commit,
-    clean,
-    commit,
-    create_branch,
-    create_tag,
-    delete_branch,
-    delete_tag,
-    diff,
-    fetch,
-    get_config,
-    list_tags,
-    print_branch_list,
-    print_status,
-    pull,
-    push,
-    rename_branch,
-    set_config,
-    stash_list,
-    stash_pop,
-    stash_save,
-)
+from bb.core.git import (amend_commit, clean, commit, create_branch,
+                         create_tag, delete_branch, delete_tag, diff, fetch,
+                         get_config, list_tags, print_branch_list,
+                         print_status, pull, push, rename_branch, set_config,
+                         stash_list, stash_pop, stash_save)
 from bb.typeshed import Ok, Result
 
 

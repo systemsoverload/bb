@@ -68,8 +68,9 @@ class PRReviewApp(App[None]):
     def __init__(self, repo_slug: str):
         super().__init__()
         # XXX - Setup textual logger for local dev - this might be better behind a flag
-        from textual.logging import TextualHandler
         import logging
+
+        from textual.logging import TextualHandler
 
         logging.basicConfig(level=logging.DEBUG, handlers=[TextualHandler()])
 

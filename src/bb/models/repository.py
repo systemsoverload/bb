@@ -4,9 +4,9 @@ from dataclasses import dataclass
 from typing import List, Optional
 
 from bb.exceptions import IPWhitelistException
+from bb.models import PullRequest, Repository
 from bb.models.base import BaseModel
 from bb.typeshed import Err, Ok, Result, User
-from bb.models import PullRequest, Repository
 
 
 @dataclass

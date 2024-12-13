@@ -4,8 +4,7 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Dict, List, Optional
 
-from bb.models.base import BaseModel
-from bb.models.repository import Repository
+from bb.models import BaseModel, FileDiff, Repository
 from bb.typeshed import Ok, Result
 
 
@@ -70,7 +69,7 @@ class PullRequest(BaseModel):
         """Get API URL for this specific pull request"""
         return f"{self.repository.api_detail_url}/pullrequests/{self.id}"
 
-    def get_diff(self) -> Result[List["FileDiff"]]:
+    def get_diff(self) -> Result[List[FileDiff], Exception]:
         """Get the pull request diff from the Bitbucket API"""
         from bb.models import FileDiff
 
@@ -105,21 +104,21 @@ class PullRequest(BaseModel):
 
         return Ok(file_diffs)
 
-    def get_default_description(self) -> Result[Dict]:
+    def get_default_description(self) -> Result[Dict, Exception]:
         """Get the generated default description for this PR"""
         return self.client().get(
             f"{self.BASE_API_URL}/internal/repositories/{self.repository.workspace}/{self.repository.slug}"
             f"/pullrequests/default-messages/{self.branch}%0Dmain?raw=true"
         )
 
-    def get_recommended_reviewers(self) -> Result[Dict]:
+    def get_recommended_reviewers(self) -> Result[Dict, Exception]:
         """Get recommended reviewers for this PR"""
         return self.client().get(
             f"{self.BASE_API_URL}/internal/repositories/{self.repository.workspace}/{self.repository.slug}"
             f"/recommended-reviewers"
         )
 
-    def get_codeowners(self, dest_branch: str = "main") -> Result[Dict]:
+    def get_codeowners(self, dest_branch: str = "main") -> Result[Dict, Exception]:
         """Get code owners for the changes in this PR"""
         return self.client().get(
             f"{self.BASE_API_URL}/internal/repositories/{self.repository.workspace}/{self.repository.slug}"

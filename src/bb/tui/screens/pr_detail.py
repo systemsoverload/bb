@@ -5,12 +5,13 @@ from typing import List
 from textual import log, work
 from textual.app import ComposeResult
 from textual.binding import Binding
-from textual.containers import Container, Horizontal, ScrollableContainer, Vertical
+from textual.containers import (Container, Horizontal, ScrollableContainer,
+                                Vertical)
 from textual.widgets import Footer, Header, Markdown, Static
 from textual.worker import Worker, get_current_worker
 
-from bb.tui.types import FileDiffType
 from bb.tui.screens.base import BaseScreen
+from bb.tui.types import FileDiffType
 from bb.typeshed import Result
 
 
