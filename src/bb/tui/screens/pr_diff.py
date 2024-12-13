@@ -21,8 +21,10 @@ class PRDiffScreen(BaseScreen):
     BINDINGS = [
         Binding("j", "scroll_down", "Scroll Down", show=True),
         Binding("k", "scroll_up", "Scroll Up", show=True),
-        Binding("n", "next_file", "Next File", show=True),
-        Binding("p", "prev_file", "Previous File", show=True),
+        Binding("l", "next_file", "Next File", show=True),
+        Binding("h", "prev_file", "Previous File", show=True),
+        Binding("right", "next_file", "Next File", show=False),
+        Binding("left", "prev_file", "Previous File", show=False),
         Binding("q", "back", "Back", show=True),
         Binding("r", "refresh", "Refresh", show=True),
         Binding("/", "search", "Search", show=False),  # Not implemented yet
