@@ -1,40 +1,65 @@
-# bb
+# bb - Bitbucket Cloud CLI
 
-Bitbucket CLI tools
+A modern command-line interface for interacting with Bitbucket Cloud.
+
+## Features
+
+- **Pull Request Management**
+  - List, create, and review pull requests
+  - Smart reviewer selection with CODEOWNERS and default reviewers integration
+- Rich terminal UI for PR reviews
+
+- **Configuration**
+  - User-defined command aliases
+  - TOML-based configuration
 
 ## Installation
 
-### From source
-`git clone git@github.com:systemsoverload/bb.git`
-`cd bb && pipx install .`
+```bash
+pipx install bitbucket-cloud-cli
+```
 
-### From pypi
-`pipx install bitbucket-cloud-cli`
+## Quick Start
 
-### Enabling auto-completion
+1. Login to Bitbucket:
+```bash
+bb auth login
+```
 
-#### Bash
+2. List your pull requests:
+```bash
+bb pr list --mine
+```
 
-Add this to `~/bashrc`
-```eval "$(_FOO_BAR_COMPLETE=bash_source foo-bar)"```
+3. Create a new pull request:
+```bash
+bb pr create
+```
 
-#### Zsh
+4. Review pull requests interactively:
+```bash
+bb pr review
+```
 
-Add this to `~/zshrc`
-```eval "$(_FOO_BAR_COMPLETE=bash_source foo-bar)"```
+Configuration is stored in `~/.config/bb/config.toml`:
 
-#### Fish
+```toml
+[auth]
+username = "your-username"
+app_password = "your-app-password"
 
-Add this to `~/.config/fish/completions/foo-bar.fish`:
-```eval "$(_FOO_BAR_COMPLETE=bash_source foo-bar)"```
-
-## Usage
-
-`bb auth login`
-
+# Optional aliases added through `bb alias`
+[alias]
+prm = "pr list --mine"
+prr = "pr list --reviewing"
+```
 
 ## Dev
 
-`rye sync`
-`rye test`
-`pipx install -e ./ --force`
+```bash
+git clone git@github.com/systemsoverload/bb
+cd bb
+rye sync
+rye test
+pipx install -e ./ --force
+```
