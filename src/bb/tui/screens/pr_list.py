@@ -5,10 +5,12 @@ from typing import Literal
 from textual import work
 from textual.app import ComposeResult
 from textual.binding import Binding
-from textual.widgets import DataTable, Footer, Header
+from textual.widgets import Footer, Header
 from textual.worker import Worker, get_current_worker
+from rich.text import Text
 
 from bb.tui.screens.base import BaseScreen
+from bb.tui.widgets import SelectableTable, StatDisplay
 
 
 class PRListScreen(BaseScreen):
@@ -17,7 +19,7 @@ class PRListScreen(BaseScreen):
     BINDINGS = [
         Binding("j", "cursor_down", "Down", show=True),
         Binding("k", "cursor_up", "Up", show=True),
-        Binding("return", "view_details", "View Details", show=True),
+        Binding("v", "view_details", "View Details", show=True),
         Binding("D", "view_diff", "View Diff", show=True),
         Binding("r", "refresh", "Refresh", show=True),
         Binding("a", "show_all", "Show All PRs", show=True),
@@ -33,13 +35,12 @@ class PRListScreen(BaseScreen):
     def compose(self) -> ComposeResult:
         """Create child widgets for the screen"""
         yield Header(show_clock=True)
-        yield DataTable(id="pr_table")
+        yield SelectableTable(id="pr_table")
         yield Footer()
 
     def on_mount(self) -> None:
         """Initialize the screen and load data"""
-        table = self.query_one("#pr_table", DataTable)
-        table.cursor_type = "row"
+        table = self.query_one("#pr_table", SelectableTable)
         table.zebra_stripes = True
 
         # Add columns
@@ -47,16 +48,16 @@ class PRListScreen(BaseScreen):
         table.add_column("Title", width=40)
         table.add_column("Author", width=20)
         table.add_column("Status", width=12)
-        table.add_column("Approvals", width=10)
+        table.add_column("Comments", width=15)
+        table.add_column("Approvals", width=15)
 
         # Start loading PRs
         self.load_prs()
 
-    def on_data_table_row_selected(self, event: DataTable.RowSelected) -> None:
-        """Handle row selection (enter key) in DataTable"""
+    def on_selectable_table_row_selected(self, event: SelectableTable.RowSelected) -> None:
+        """Handle row selection in SelectableTable"""
         if self.state.prs:
-            current_row = event.cursor_row
-            self.state.set_current_pr(self.state.prs[current_row])
+            self.state.set_current_pr(self.state.prs[event.row_index])
             self.app.push_screen("pr_detail")
 
     @work(exclusive=True, thread=True)
@@ -68,7 +69,7 @@ class PRListScreen(BaseScreen):
 
         try:
             # Clear existing table
-            table = self.query_one("#pr_table", DataTable)
+            table = self.query_one("#pr_table", SelectableTable)
             self.app.call_from_thread(table.clear)
 
             filter_msg = {
@@ -79,7 +80,6 @@ class PRListScreen(BaseScreen):
 
             self.app.call_from_thread(self.notify, filter_msg, timeout=1)
 
-            # Use PullRequestCollection with new query builder
             prs_result = self.state.repo.pullrequests.list(
                 _all=self.current_filter == "_all",
                 reviewing=self.current_filter == "reviewing",
@@ -107,7 +107,7 @@ class PRListScreen(BaseScreen):
                                 pr.title,
                                 pr.author,
                                 pr.status,
-                                str(len(pr.approvals)),
+                                pr.comment_count
                             )
                         if table.row_count > 0:
                             table.move_cursor(row=0)
@@ -131,7 +131,7 @@ class PRListScreen(BaseScreen):
 
     def action_cursor_down(self) -> None:
         """Move cursor down"""
-        table = self.query_one("#pr_table", DataTable)
+        table = self.query_one("#pr_table", SelectableTable)
         if table.row_count > 0:
             current = table.cursor_coordinate
             if current.row < table.row_count - 1:
@@ -139,7 +139,7 @@ class PRListScreen(BaseScreen):
 
     def action_cursor_up(self) -> None:
         """Move cursor up"""
-        table = self.query_one("#pr_table", DataTable)
+        table = self.query_one("#pr_table", SelectableTable)
         if table.row_count > 0:
             current = table.cursor_coordinate
             if current.row > 0:
@@ -147,7 +147,7 @@ class PRListScreen(BaseScreen):
 
     def action_view_details(self) -> None:
         """View PR details"""
-        table = self.query_one("#pr_table", DataTable)
+        table = self.query_one("#pr_table", SelectableTable)
         if table.row_count > 0 and self.state.prs:
             current_row = table.cursor_coordinate.row
             self.state.set_current_pr(self.state.prs[current_row])
@@ -155,7 +155,7 @@ class PRListScreen(BaseScreen):
 
     def action_view_diff(self) -> None:
         """View PR diff directly from list"""
-        table = self.query_one("#pr_table", DataTable)
+        table = self.query_one("#pr_table", SelectableTable)
         if table.row_count > 0 and self.state.prs:
             current_row = table.cursor_coordinate.row
             self.state.set_current_pr(self.state.prs[current_row])

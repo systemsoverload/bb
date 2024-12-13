@@ -1,15 +1,14 @@
-"""Pull request detail screen module"""
-
+"""Pull request detail screen with enhanced stats display"""
 
 from textual import log, work
 from textual.app import ComposeResult
 from textual.binding import Binding
-from textual.containers import (Container, Horizontal, ScrollableContainer,
-                                Vertical)
+from textual.containers import Container, Horizontal, ScrollableContainer, Vertical
 from textual.widgets import Footer, Header, Markdown, Static
 from textual.worker import Worker, get_current_worker
 
 from bb.tui.screens.base import BaseScreen
+from bb.tui.widgets import FileDiff, StatDisplay
 
 
 class PRDetailScreen(BaseScreen):
@@ -24,23 +23,67 @@ class PRDetailScreen(BaseScreen):
         Binding("o", "open_browser", "Open in Browser", show=True),
     ]
 
+    CSS = """
+    .pr-header {
+        dock: top;
+        height: 3;
+        background: $boost;
+        color: $text;
+        padding: 1;
+    }
+
+    #pr_stats {
+        dock: right;
+        padding: 0 2;
+    }
+
+    .pr-meta {
+        height: 100%;
+        padding: 1;
+        border: solid $primary;
+    }
+
+    .pr-description {
+        height: 100%;
+        padding: 1;
+        border: solid $primary;
+    }
+
+    .pr-diffs {
+        width: 100%;
+        padding: 1;
+        border: solid $primary;
+    }
+
+    #diffs_container {
+        height: 1fr;
+        border: solid $primary;
+    }
+    """
+
     def compose(self) -> ComposeResult:
         """Create child widgets for the screen"""
         yield Header()
         yield Container(
-            Static(id="pr_title", classes="pr-title"),
+            Horizontal(
+                Static(id="pr_title", classes="pr-title"),
+                StatDisplay(id="pr_stats"),
+                classes="pr-header"
+            ),
             Vertical(
                 Horizontal(
                     ScrollableContainer(
-                        Static(id="pr_meta", classes="pr-meta"), id="meta_container"
+                        Static(id="pr_meta", classes="pr-meta"),
+                        id="meta_container"
                     ),
                     ScrollableContainer(
                         Markdown(id="pr_description", classes="pr-description"),
-                        id="description_container",
+                        id="description_container"
                     ),
                 ),
                 ScrollableContainer(
-                    Static(id="pr_diffs", classes="pr-diffs"), id="diffs_container"
+                    Vertical(id="pr_diffs", classes="pr-diffs"),
+                    id="diffs_container"
                 ),
                 classes="pr-container",
             ),
@@ -71,10 +114,32 @@ class PRDetailScreen(BaseScreen):
         self.query_one("#pr_title").update("")
         self.query_one("#pr_meta").update("")
         self.query_one("#pr_description").update("")
-        self.query_one("#pr_diffs").update("")
+        self.query_one("#pr_diffs").remove_children()
+
+        # Reset stats
+        stats = self.query_one("#pr_stats", StatDisplay)
+        stats.update_stats(additions=0, deletions=0, comments=self.state.current_pr.comment_count)
 
         self.load_pr_details()
         self.load_pr_diffs()
+
+    def update_pr_stats(self) -> None:
+        """Update the PR statistics display"""
+        if not self.state.current_pr:
+            return
+
+        total_additions = 0
+        total_deletions = 0
+        for diff in self.state.file_diffs:
+            total_additions += diff.stats['additions']
+            total_deletions += diff.stats['deletions']
+
+        stats = self.query_one("#pr_stats", StatDisplay)
+        stats.update_stats(
+            additions=total_additions,
+            deletions=total_deletions,
+            comments=self.state.current_pr.comment_count
+        )
 
     @work(thread=True)
     def load_pr_diffs(self) -> None:
@@ -84,7 +149,6 @@ class PRDetailScreen(BaseScreen):
             return
 
         if not self.state.current_pr:
-
             def handle_no_pr():
                 self.query_one("#diffs_container").loading = False
                 self.notify("No PR selected", severity="error", timeout=1)
@@ -100,7 +164,6 @@ class PRDetailScreen(BaseScreen):
 
             diff_result = self.state.current_pr.get_diff()
             if diff_result.is_err():
-
                 def handle_error():
                     self.query_one("#diffs_container").loading = False
                     self.notify(
@@ -118,111 +181,81 @@ class PRDetailScreen(BaseScreen):
                 self.state.set_file_diffs(file_diffs)
 
                 def update_display():
-                    # Format and display diff content
-                    diff_content = []
+                    # Clear existing diffs
+                    diffs_container = self.query_one("#pr_diffs", Vertical)
+                    diffs_container.remove_children()
+
+                    # Add collapsible diff widget for each file
                     for diff in file_diffs:
-                        # Add file status if available
-                        status_str = f" ({diff.status})" if diff.status else ""
-                        header = f"[bold]{diff.filename}[/]{status_str} (+{diff.stats['additions']}, -{diff.stats['deletions']})"
-                        content = [header, ""]
+                        diffs_container.mount(FileDiff(
+                            filename=diff.filename,
+                            lines=diff.lines,
+                            additions=diff.stats['additions'],
+                            deletions=diff.stats['deletions']
+                        ))
 
-                        # Add formatted diff lines
-                        for line in diff.lines:
-                            if line.startswith("+"):
-                                content.append(f"[green]{line}[/]")
-                            elif line.startswith("-"):
-                                content.append(f"[red]{line}[/]")
-                            elif line.startswith("@@"):
-                                content.append(f"[blue]{line}[/]")
-                            else:
-                                content.append(line)
-                        content.append("")
-                        diff_content.extend(content)
-
-                    self.query_one("#pr_diffs").update("\n".join(diff_content))
                     self.query_one("#diffs_container").loading = False
+                    self.update_pr_stats()
 
                 self.app.call_from_thread(update_display)
 
         except Exception as e:
             if not worker.is_cancelled:
-
-                def handle_error(e):
+                def handle_error():
                     self.query_one("#diffs_container").loading = False
                     self.notify(
                         f"Error loading diffs: {str(e)}", severity="error", timeout=1
                     )
 
-                self.app.call_from_thread(handle_error, e)
+                self.app.call_from_thread(handle_error)
 
     @work(thread=True)
     def load_pr_details(self) -> None:
         """Load PR details in background thread"""
         worker = get_current_worker()
         if worker.is_cancelled:
-            log.debug("Worker cancelled, returning early")
             return
 
         try:
-            log.debug("Loading PR details")
             pr = self.state.current_pr
-
             if not pr:
-                log.error("No PR found in state")
-                self.app.call_from_thread(
-                    self.notify, "No pull request selected", severity="error", timeout=1
-                )
+                def handle_no_pr():
+                    self.notify("No PR selected", severity="error", timeout=1)
+                self.app.call_from_thread(handle_no_pr)
                 return
 
-            log.debug(f"PR data loaded: #{pr.id} - {pr.title}")
-
             def update_display():
-                try:
-                    log.debug("Updating title")
-                    self.query_one("#pr_title").update(f"PR #{pr.id}: {pr.title}")
+                # Update title
+                self.query_one("#pr_title").update(f"PR #{pr.id}: {pr.title}")
 
-                    log.debug("Updating metadata")
-                    meta = [
-                        f"[bold]Author:[/] {pr.author}",
-                        f"[bold]Branch:[/] {pr.branch}",
-                        f"[bold]Status:[/] {pr.status}",
-                        f"[bold]Created:[/] {pr.created}",
-                        "",
-                        "[bold]Reviewers:[/]",
-                        *[f"  • {reviewer}" for reviewer in pr.reviewers],
-                        "",
-                        "[bold]Approvals:[/]",
-                        *[f"  • {approver}" for approver in pr.approvals],
-                        "",
-                        f"[link={pr.web_url}]View in Browser[/link]",
-                    ]
-                    meta_widget = self.query_one("#pr_meta")
-                    if meta_widget:
-                        meta_widget.update("\n".join(meta))
-                    else:
-                        log.error("Could not find #pr_meta widget")
+                # Update metadata
+                meta = [
+                    f"[bold]Author:[/] {pr.author}",
+                    f"[bold]Branch:[/] {pr.branch}",
+                    f"[bold]Status:[/] {pr.status}",
+                    f"[bold]Created:[/] {pr.created}",
+                    "",
+                    "[bold]Reviewers:[/]",
+                    *[f"  • {reviewer}" for reviewer in pr.reviewers],
+                    "",
+                    "[bold]Approvals:[/]",
+                    *[f"  • {approver}" for approver in pr.approvals],
+                    "",
+                    f"[link={pr.web_url}]View in Browser[/link]",
+                ]
+                self.query_one("#pr_meta").update("\n".join(meta))
 
-                    log.debug("Updating description")
-                    desc = (
-                        pr.description
-                        if pr.description
-                        else "*No description provided*"
-                    )
-                    desc_widget = self.query_one("#pr_description", Markdown)
-                    if desc_widget:
-                        desc_widget.update(desc)
-                    else:
-                        log.error("Could not find #pr_description widget")
+                # Update description
+                desc = pr.description if pr.description else "*No description provided*"
+                self.query_one("#pr_description", Markdown).update(desc)
 
-                except Exception as e:
-                    log.error(f"Error in update_display: {str(e)}")
-                    raise
+                # Update initial stats (comments only at this point)
+                stats = self.query_one("#pr_stats", StatDisplay)
+                stats.update_stats(comments=pr.comment_count)
 
-            log.debug("Calling update_display from thread")
             self.app.call_from_thread(update_display)
 
         except Exception as e:
-            log.error(f"Error loading PR details: {str(e)}")
             if not worker.is_cancelled:
                 self.app.call_from_thread(
                     self.notify, f"Error loading PR details: {str(e)}", severity="error"

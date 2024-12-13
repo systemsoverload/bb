@@ -37,7 +37,7 @@ class PullRequest(BaseModel):
     repository: Repository
     reviewers: List[str] = field(default_factory=list)
     approvals: List[str] = field(default_factory=list)
-    comments: int = 0
+    comment_count: int = 0
     source_commit: Optional[str] = None
     destination_commit: Optional[str] = None
     links: Dict = field(default_factory=dict)
@@ -80,7 +80,7 @@ class PullRequest(BaseModel):
                 for p in data.get("participants", [])
                 if p["approved"]
             ],
-            comments=len(data.get("comments", [])),
+            comment_count=data.get("comment_count", 0),
             branch=data["source"]["branch"]["name"],
             created=cls.format_date(data["created_on"]),
             reviewers=[r["user"]["display_name"] for r in data.get("reviewers", [])],
