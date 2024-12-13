@@ -68,22 +68,20 @@ class PRDetailScreen(BaseScreen):
             Horizontal(
                 Static(id="pr_title", classes="pr-title"),
                 StatDisplay(id="pr_stats"),
-                classes="pr-header"
+                classes="pr-header",
             ),
             Vertical(
                 Horizontal(
                     ScrollableContainer(
-                        Static(id="pr_meta", classes="pr-meta"),
-                        id="meta_container"
+                        Static(id="pr_meta", classes="pr-meta"), id="meta_container"
                     ),
                     ScrollableContainer(
                         Markdown(id="pr_description", classes="pr-description"),
-                        id="description_container"
+                        id="description_container",
                     ),
                 ),
                 ScrollableContainer(
-                    Vertical(id="pr_diffs", classes="pr-diffs"),
-                    id="diffs_container"
+                    Vertical(id="pr_diffs", classes="pr-diffs"), id="diffs_container"
                 ),
                 classes="pr-container",
             ),
@@ -118,7 +116,9 @@ class PRDetailScreen(BaseScreen):
 
         # Reset stats
         stats = self.query_one("#pr_stats", StatDisplay)
-        stats.update_stats(additions=0, deletions=0, comments=self.state.current_pr.comment_count)
+        stats.update_stats(
+            additions=0, deletions=0, comments=self.state.current_pr.comment_count
+        )
 
         self.load_pr_details()
         self.load_pr_diffs()
@@ -131,14 +131,14 @@ class PRDetailScreen(BaseScreen):
         total_additions = 0
         total_deletions = 0
         for diff in self.state.file_diffs:
-            total_additions += diff.stats['additions']
-            total_deletions += diff.stats['deletions']
+            total_additions += diff.stats["additions"]
+            total_deletions += diff.stats["deletions"]
 
         stats = self.query_one("#pr_stats", StatDisplay)
         stats.update_stats(
             additions=total_additions,
             deletions=total_deletions,
-            comments=self.state.current_pr.comment_count
+            comments=self.state.current_pr.comment_count,
         )
 
     @work(thread=True)
@@ -149,6 +149,7 @@ class PRDetailScreen(BaseScreen):
             return
 
         if not self.state.current_pr:
+
             def handle_no_pr():
                 self.query_one("#diffs_container").loading = False
                 self.notify("No PR selected", severity="error", timeout=1)
@@ -164,6 +165,7 @@ class PRDetailScreen(BaseScreen):
 
             diff_result = self.state.current_pr.get_diff()
             if diff_result.is_err():
+
                 def handle_error():
                     self.query_one("#diffs_container").loading = False
                     self.notify(
@@ -187,12 +189,14 @@ class PRDetailScreen(BaseScreen):
 
                     # Add collapsible diff widget for each file
                     for diff in file_diffs:
-                        diffs_container.mount(FileDiff(
-                            filename=diff.filename,
-                            lines=diff.lines,
-                            additions=diff.stats['additions'],
-                            deletions=diff.stats['deletions']
-                        ))
+                        diffs_container.mount(
+                            FileDiff(
+                                filename=diff.filename,
+                                lines=diff.lines,
+                                additions=diff.stats["additions"],
+                                deletions=diff.stats["deletions"],
+                            )
+                        )
 
                     self.query_one("#diffs_container").loading = False
                     self.update_pr_stats()
@@ -201,6 +205,7 @@ class PRDetailScreen(BaseScreen):
 
         except Exception as e:
             if not worker.is_cancelled:
+
                 def handle_error():
                     self.query_one("#diffs_container").loading = False
                     self.notify(
@@ -219,8 +224,10 @@ class PRDetailScreen(BaseScreen):
         try:
             pr = self.state.current_pr
             if not pr:
+
                 def handle_no_pr():
                     self.notify("No PR selected", severity="error", timeout=1)
+
                 self.app.call_from_thread(handle_no_pr)
                 return
 
@@ -285,9 +292,56 @@ class PRDetailScreen(BaseScreen):
         else:
             self.notify("Unable to open PR in browser", severity="error", timeout=1)
 
+    @work(thread=True)
+    def approve_pr(self) -> None:
+        """Approve the current PR in a background thread"""
+        worker = get_current_worker()
+        if worker.is_cancelled:
+            return
+
+        if not self.state.current_pr:
+            self.app.call_from_thread(
+                self.notify, "No PR selected", severity="error", timeout=1
+            )
+            return
+
+        try:
+            result = self.state.current_pr.approve()
+            if result.is_err():
+
+                def handle_error():
+                    error = result.unwrap_err()
+                    self.notify(
+                        f"Error approving PR: {str(error)}", severity="error", timeout=3
+                    )
+
+                self.app.call_from_thread(handle_error)
+                return
+
+            def handle_success():
+                self.notify("PR approved successfully", timeout=2)
+                # TODO - Refresh the PR details to show updated approval status
+                # Currently we arent showing anything yet so save the reload
+                # self.refresh_pr_data()
+
+            self.app.call_from_thread(handle_success)
+
+        except Exception as e:
+            if not worker.is_cancelled:
+
+                def handle_error():
+                    self.notify(
+                        f"Error approving PR: {str(e)}", severity="error", timeout=3
+                    )
+
+                self.app.call_from_thread(handle_error)
+
     def action_approve(self) -> None:
-        """Approve the PR (not implemented)"""
-        self.notify("PR approval not implemented yet", severity="warning", timeout=1)
+        """Handle the approve action"""
+        if self.state.current_pr:
+            self.approve_pr()
+        else:
+            self.notify("No PR selected to approve", severity="error", timeout=1)
 
     def action_comment(self) -> None:
         """Add a comment to the PR (not implemented)"""

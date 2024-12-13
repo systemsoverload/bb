@@ -2,12 +2,12 @@
 
 from typing import Literal
 
+from rich.text import Text
 from textual import work
 from textual.app import ComposeResult
 from textual.binding import Binding
 from textual.widgets import Footer, Header
 from textual.worker import Worker, get_current_worker
-from rich.text import Text
 
 from bb.tui.screens.base import BaseScreen
 from bb.tui.widgets import SelectableTable, StatDisplay
@@ -54,7 +54,9 @@ class PRListScreen(BaseScreen):
         # Start loading PRs
         self.load_prs()
 
-    def on_selectable_table_row_selected(self, event: SelectableTable.RowSelected) -> None:
+    def on_selectable_table_row_selected(
+        self, event: SelectableTable.RowSelected
+    ) -> None:
         """Handle row selection in SelectableTable"""
         if self.state.prs:
             self.state.set_current_pr(self.state.prs[event.row_index])
@@ -107,7 +109,8 @@ class PRListScreen(BaseScreen):
                                 pr.title,
                                 pr.author,
                                 pr.status,
-                                pr.comment_count
+                                pr.comment_count,
+                                len(pr.approvals),
                             )
                         if table.row_count > 0:
                             table.move_cursor(row=0)

@@ -1,16 +1,18 @@
 from dataclasses import dataclass
 from typing import List, Optional
 
-from textual.widgets import Static
-from rich.table import Table
 from rich.style import Style
+from rich.table import Table
+from textual.widgets import Static
 
 
 @dataclass
 class LiveRow:
     """A row in the live table"""
+
     data: list
     style: Optional[Style] = None
+
 
 class LiveTable(Static):
     """A table that supports live updates"""
@@ -29,7 +31,7 @@ class LiveTable(Static):
         *args,
         headers: List[str] = [],
         zebra_stripes: bool = True,
-        **kwargs
+        **kwargs,
     ):
         super().__init__(*args, **kwargs)
         self.title = title

@@ -1,8 +1,11 @@
 """File diff widget with collapsible content"""
+
 from textual.app import ComposeResult
-from textual.containers import Vertical, Horizontal
+from textual.containers import Horizontal, Vertical
 from textual.widgets import Collapsible, Static
+
 from bb.tui.widgets.stat_display import StatDisplay
+
 
 class DiffContent(Static):
     """Content container for diff lines"""
@@ -55,6 +58,7 @@ class DiffContent(Static):
             content = line if not style else f"[{style}]{line}[/]"
             yield Static(content, classes=classes)
 
+
 class DiffHeader(Static):
     """Header showing filename and stats"""
 
@@ -62,7 +66,7 @@ class DiffHeader(Static):
         yield Horizontal(
             Static(f"[bold]{self.filename}[/]", classes="filename"),
             StatDisplay(additions=self.additions, deletions=self.deletions),
-            classes="header-content"
+            classes="header-content",
         )
 
     def __init__(self, filename: str, additions: int, deletions: int):
@@ -70,6 +74,7 @@ class DiffHeader(Static):
         self.filename = filename
         self.additions = additions
         self.deletions = deletions
+
 
 class FileDiff(Static):
     """A component that shows file diff with collapsible content"""
@@ -105,13 +110,7 @@ class FileDiff(Static):
     }
     """
 
-    def __init__(
-        self,
-        filename: str,
-        lines: list[str],
-        additions: int,
-        deletions: int
-    ):
+    def __init__(self, filename: str, lines: list[str], additions: int, deletions: int):
         super().__init__()
         self.filename = filename
         self.lines = lines
@@ -124,7 +123,14 @@ class FileDiff(Static):
 
         # Create collapsible section for diff content
         diff_content = DiffContent(self.lines)
-        collapsible = Collapsible(diff_content, title="", expanded_symbol="", collapsed_symbol="", collapsed=False, classes="diff-collapsible")
+        collapsible = Collapsible(
+            diff_content,
+            title="",
+            expanded_symbol="",
+            collapsed_symbol="",
+            collapsed=False,
+            classes="diff-collapsible",
+        )
         yield collapsible
 
     def on_click(self) -> None:

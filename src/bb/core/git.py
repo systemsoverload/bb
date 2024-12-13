@@ -1,8 +1,8 @@
 import os
 import shlex
 from subprocess import STDOUT, CalledProcessError, check_output
-from typing import List, Optional
 from tempfile import NamedTemporaryFile
+from typing import List, Optional
 
 from rich.console import Console
 from rich.table import Table
@@ -399,9 +399,7 @@ def edit_tmp_file(contents: str = "") -> Result:
             if contents:
                 fp.write(contents.encode("utf-8"))
             fp.close()
-            check_output(
-                shlex.split(edit_cmd), universal_newlines=True, stderr=STDOUT
-            )
+            check_output(shlex.split(edit_cmd), universal_newlines=True, stderr=STDOUT)
 
             with open(fp.name) as f:
                 contents = f.read()

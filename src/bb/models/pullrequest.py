@@ -5,8 +5,7 @@ from datetime import datetime
 from typing import Dict, List, Optional, Self
 
 from bb.models.base import BaseModel
-from bb.models.repository import Repository
-from bb.tui.types import FileDiffType
+from bb.tui.types import FileDiffType, RepositoryType
 from bb.typeshed import Ok, Result
 
 
@@ -14,7 +13,7 @@ from bb.typeshed import Ok, Result
 class PullRequest(BaseModel):
     """Represents a pull request with its key attributes"""
 
-    DEFAULT_FIELDS = [
+    INCLUDED_FIELDS = [
         "values.repository",
         "values.participants",
         "values.description",
@@ -34,7 +33,7 @@ class PullRequest(BaseModel):
     status: str
     branch: str
     created: str
-    repository: Repository
+    repository: RepositoryType
     reviewers: List[str] = field(default_factory=list)
     approvals: List[str] = field(default_factory=list)
     comment_count: int = 0
@@ -101,6 +100,11 @@ class PullRequest(BaseModel):
     def api_detail_url(self) -> str:
         """Get API URL for this specific pull request"""
         return f"{self.repository.api_detail_url}/pullrequests/{self.id}"
+
+    def approve(self) -> Result:
+        """Approve this pull request"""
+        url = f"{self.api_detail_url}/approve"
+        return self.client().post(url)
 
     def get_diff(self) -> Result[List[FileDiffType], Exception]:
         """Get the pull request diff from the Bitbucket API"""

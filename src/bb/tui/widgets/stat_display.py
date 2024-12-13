@@ -1,8 +1,9 @@
 from typing import Optional
 
-from textual.widgets import Static
 from rich.style import Style
 from rich.text import Text
+from textual.widgets import Static
+
 
 class StatDisplay(Static):
     DEFAULT_CSS = """
@@ -25,12 +26,7 @@ class StatDisplay(Static):
     """
 
     def __init__(
-        self,
-        additions: int = 0,
-        deletions: int = 0,
-        comments: int = 0,
-        *args,
-        **kwargs
+        self, additions: int = 0, deletions: int = 0, comments: int = 0, *args, **kwargs
     ):
         super().__init__(*args, **kwargs)
         self.additions = additions
@@ -44,22 +40,19 @@ class StatDisplay(Static):
         # Additions
         if self.additions:
             stats_text.append(
-                f"+{self.additions} ",
-                style=Style(color="green", bold=True)
+                f"+{self.additions} ", style=Style(color="green", bold=True)
             )
 
         # Deletions
         if self.deletions:
             stats_text.append(
-                f"-{self.deletions} ",
-                style=Style(color="red", bold=True)
+                f"-{self.deletions} ", style=Style(color="red", bold=True)
             )
 
         # Comments
         if self.comments:
             stats_text.append(
-                f"💬 {self.comments}",
-                style=Style(color="yellow", bold=True)
+                f"💬 {self.comments}", style=Style(color="yellow", bold=True)
             )
 
         yield Static(stats_text)
@@ -68,7 +61,7 @@ class StatDisplay(Static):
         self,
         additions: Optional[int] = None,
         deletions: Optional[int] = None,
-        comments: Optional[int] = None
+        comments: Optional[int] = None,
     ) -> None:
         """Update the displayed statistics"""
         if additions is not None:

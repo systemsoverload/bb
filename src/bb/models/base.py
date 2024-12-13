@@ -57,7 +57,7 @@ class BitbucketClient:
     ) -> Optional[str]:
         """Build fields parameter for API request"""
         # Start with model's default inclusions/exclusions
-        fields = set(model_cls.DEFAULT_FIELDS)
+        fields = set(model_cls.INCLUDED_FIELDS)
         excluded = set(model_cls.EXCLUDED_FIELDS)
 
         # Add request-specific includes/excludes
@@ -124,14 +124,19 @@ class BitbucketClient:
             if params:
                 kwargs["params"] = params
 
+            if kwargs.get("auth"):
+                auth = kwargs.pop("auth")
+            else:
+                auth = auth = (
+                    self.config.get("auth.username"),
+                    self.config.get("auth.app_password"),
+                )
+
             response = requests.request(
                 method,
                 url,
                 allow_redirects=True,
-                auth=(
-                    self.config.get("auth.username"),
-                    self.config.get("auth.app_password"),
-                ),
+                auth=auth,
                 **kwargs,
             )
 
@@ -139,15 +144,22 @@ class BitbucketClient:
 
             content_type = kwargs.get("content_type", "")
             if "application/json" in content_type:
-                return Ok(response.json())
+                result = response.json()
             elif "text/plain" in content_type:
-                return Ok(response.text)
+                result = response.text
             else:
                 # Default to json if no content-type or unknown
                 try:
-                    return Ok(response.json())
+                    result = response.json()
                 except ValueError:
-                    return Ok(response.text)
+                    result = response.text
+
+            # XXX - Always include headers if response is a dict
+            # A bit hack, this could probably be cleaner
+            if isinstance(result, dict):
+                result["headers"] = dict(response.headers)
+            return Ok(result)
+
         except requests.HTTPError as e:
             return Err(self._handle_response_error(e))
         except Exception as e:
@@ -206,7 +218,7 @@ class BaseModel(ABC):
     BASE_WEB_URL: ClassVar[str] = "https://bitbucket.org"
 
     # Default field specifications
-    DEFAULT_FIELDS: ClassVar[List[str]] = []
+    INCLUDED_FIELDS: ClassVar[List[str]] = []
     EXCLUDED_FIELDS: ClassVar[List[str]] = []
 
     # Shared client instance

@@ -1,10 +1,13 @@
+from unittest.mock import MagicMock, patch
+
 import pytest
 from textual.pilot import Pilot
 from textual.widgets import DataTable
-from unittest.mock import MagicMock, patch
-from bb.tui.screens.pr_list import PRListScreen
+
 from bb.tui.app import PRReviewApp
+from bb.tui.screens.pr_list import PRListScreen
 from bb.tui.state import PRState
+
 
 @pytest.fixture
 def app():
@@ -12,11 +15,13 @@ def app():
     app = PRReviewApp("test/repo")
     return app
 
+
 @pytest.fixture
 async def pilot(app):
     """Fixture to create a Pilot for testing"""
     async with app.run_test() as pilot:
         yield pilot
+
 
 class TestPRListScreen:
     async def test_screen_mount(self, pilot: Pilot):
@@ -33,17 +38,19 @@ class TestPRListScreen:
         assert len(table.columns) == 5  # ID, Title, Author, Status, Approvals
         assert table.cursor_type == "row"
 
-    @patch('bb.tui.screens.pr_list.get_prs')
+    @patch("bb.tui.screens.pr_list.get_prs")
     async def test_pr_loading(self, mock_get_prs, pilot: Pilot):
         """Test PR data loading and display"""
         # Mock PR data
         mock_prs = [
             {
-                'id': 1,
-                'title': 'Test PR',
-                'author': {'display_name': 'Test Author'},
-                'status': 'OPEN',
-                'participants': [{'approved': True, 'user': {'display_name': 'Approver'}}]
+                "id": 1,
+                "title": "Test PR",
+                "author": {"display_name": "Test Author"},
+                "status": "OPEN",
+                "participants": [
+                    {"approved": True, "user": {"display_name": "Approver"}}
+                ],
             }
         ]
         mock_get_prs.return_value.unwrap.return_value = mock_prs
@@ -88,8 +95,9 @@ class TestPRListScreen:
         # Verify screen transition
         assert pilot.app.screen_stack[-1].name == "pr_detail"
 
+
 class TestPRDetailScreen:
-    @patch('bb.tui.screens.pr_detail.PRDetailScreen.load_pr_details')
+    @patch("bb.tui.screens.pr_detail.PRDetailScreen.load_pr_details")
     async def test_detail_screen_mount(self, mock_load_details, pilot: Pilot):
         """Test PR detail screen mounting"""
         # Set up test PR in state
@@ -102,12 +110,13 @@ class TestPRDetailScreen:
             status="OPEN",
             created="2024-01-01",
             reviewers=["Reviewer1"],
-            approvals=["Approver1"]
+            approvals=["Approver1"],
         )
         pilot.app.state.current_pr = pr
 
         # Push detail screen
         from bb.tui.screens.pr_detail import PRDetailScreen
+
         screen = PRDetailScreen()
         await pilot.push_screen(screen)
 
@@ -120,6 +129,7 @@ class TestPRDetailScreen:
         """Test diff content loading"""
         # Similar structure to above, but testing diff loading
         pass
+
 
 def test_app_state():
     """Test PRState management"""

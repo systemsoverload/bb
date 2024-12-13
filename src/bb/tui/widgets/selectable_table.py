@@ -1,12 +1,14 @@
 from dataclasses import dataclass
 from typing import List
 
-from textual.widgets import DataTable
 from textual.message import Message
+from textual.widgets import DataTable
+
 
 @dataclass
 class SelectableRow:
     """Represents a selectable row in the table"""
+
     data: list
     selected: bool = False
 
@@ -22,6 +24,7 @@ class SelectableTable(DataTable):
 
     class RowSelected(Message):
         """Posted when a row is selected"""
+
         def __init__(self, row_index: int, row_data: SelectableRow) -> None:
             self.row_index = row_index
             self.row_data = row_data
@@ -29,6 +32,7 @@ class SelectableTable(DataTable):
 
     class SelectionChanged(Message):
         """Posted when selection state changes"""
+
         def __init__(self, selected_rows: List[SelectableRow]) -> None:
             self.selected_rows = selected_rows
             super().__init__()
@@ -47,10 +51,7 @@ class SelectableTable(DataTable):
         self.refresh_row(row_index)
 
         # Post selection changed message
-        selected_data = [
-            SelectableRow(self.get_row_at(i))
-            for i in self.selected_rows
-        ]
+        selected_data = [SelectableRow(self.get_row_at(i)) for i in self.selected_rows]
         self.post_message(self.SelectionChanged(selected_data))
 
     def on_key_space(self) -> None:

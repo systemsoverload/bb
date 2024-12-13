@@ -55,6 +55,7 @@ def login(username, app_password):
         else:
             print(":x: [bold]Something went wrong")
 
+
 @auth.command()
 def status():
     """Show current authentication status"""
@@ -80,6 +81,7 @@ def status():
         else:
             print(e)
             print(":x: [bold]Something went wrong")
+
 
 @auth.command()
 def logout():

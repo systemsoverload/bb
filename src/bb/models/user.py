@@ -1,15 +1,16 @@
 from dataclasses import dataclass, field
-from typing import Dict, List, Optional
-from typing import Self
+from typing import Dict, List, Optional, Self
 
 from bb.core.config import BBConfig
 from bb.models.base import BaseModel, BitbucketClient
 from bb.tui.types import RepositoryType
-from bb.typeshed import Result, Ok
+from bb.typeshed import Ok, Result
+
 
 @dataclass
 class UserStatus:
     """Represents the authentication and account status of a user"""
+
     display_name: str
     nickname: str
     account_status: str
@@ -20,14 +21,13 @@ class UserStatus:
     def format_message(self) -> List[str]:
         """Format the status as a list of message lines"""
         msg = ["[bold]bitbucket.org[/]"]
-        msg.append(
-            f"- Logged in as [bold]{self.display_name}[/] ({self.nickname})"
-        )
+        msg.append(f"- Logged in as [bold]{self.display_name}[/] ({self.nickname})")
         msg.append(f"- Account status: {self.account_status}")
         msg.append(f"- 2FA enabled: {self.has_2fa_enabled}")
         msg.append(f"- App password: {self.app_password_preview}")
         msg.append(f"- Scopes: {[f"'{s}'" for s in self.scopes]}")
         return msg
+
 
 @dataclass
 class User(BaseModel):
@@ -76,13 +76,13 @@ class User(BaseModel):
         )
 
     @classmethod
-    def validate_credentials(cls, username: str, app_password: str) -> Result[UserStatus, Exception]:
+    def validate_credentials(
+        cls, username: str, app_password: str
+    ) -> Result[UserStatus, Exception]:
         """Validate credentials by making an authenticated request with them"""
         client = BitbucketClient(BBConfig())  # Create new client
         result = client._make_request(
-            "GET",
-            f"{cls.BASE_API_URL}/user",
-            auth=(username, app_password)
+            "GET", f"{cls.BASE_API_URL}/user", auth=(username, app_password)
         )
 
         if result.is_err():
@@ -96,14 +96,18 @@ class User(BaseModel):
         app_password_preview = f"{app_password[0:4]}{'*' * (len(app_password) - 4)}"
         scopes = raw_response["headers"]["X-Oauth-Scopes"].split(",")
 
-        return Ok(UserStatus(
-            display_name=user_data["display_name"],
-            nickname=user_data.get("nickname", user_data.get("username", "unknown")),
-            account_status=user_data.get("account_status", "unknown"),
-            has_2fa_enabled=user_data.get("has_2fa_enabled", False),
-            app_password_preview=app_password_preview,
-            scopes=scopes
-        ))
+        return Ok(
+            UserStatus(
+                display_name=user_data["display_name"],
+                nickname=user_data.get(
+                    "nickname", user_data.get("username", "unknown")
+                ),
+                account_status=user_data.get("account_status", "unknown"),
+                has_2fa_enabled=user_data.get("has_2fa_enabled", False),
+                app_password_preview=app_password_preview,
+                scopes=scopes,
+            )
+        )
 
     @classmethod
     def get_status(cls) -> Result[UserStatus, Exception]:
@@ -122,16 +126,20 @@ class User(BaseModel):
         app_password_preview = f"{app_password[0:4]}{'*' * (len(app_password) - 4)}"
 
         # Extract scopes from response headers
-        scopes = raw_response['headers']['X-Oauth-Scopes'].split(",")
+        scopes = raw_response["headers"]["X-Oauth-Scopes"].split(",")
 
-        return Ok(UserStatus(
-            display_name=user_data["display_name"],
-            nickname=user_data.get("nickname", user_data.get("username", "unknown")),
-            account_status=user_data.get("account_status", "unknown"),
-            has_2fa_enabled=user_data.get("has_2fa_enabled", False),
-            app_password_preview=app_password_preview,
-            scopes=scopes
-        ))
+        return Ok(
+            UserStatus(
+                display_name=user_data["display_name"],
+                nickname=user_data.get(
+                    "nickname", user_data.get("username", "unknown")
+                ),
+                account_status=user_data.get("account_status", "unknown"),
+                has_2fa_enabled=user_data.get("has_2fa_enabled", False),
+                app_password_preview=app_password_preview,
+                scopes=scopes,
+            )
+        )
 
     @property
     def web_url(self) -> str:

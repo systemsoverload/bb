@@ -2,7 +2,6 @@
 
 from typing import List, Optional
 
-from bb.models import Repository
 from bb.tui.types import FileDiffType, PullRequestType
 
 
@@ -10,6 +9,8 @@ class PRState:
     """Global application state"""
 
     def __init__(self, workspace_slug: str, repo_slug: str):
+        from bb.models import Repository
+
         self.repo = Repository(slug=repo_slug, workspace=workspace_slug)
 
         self.prs: List[PullRequestType] = []
