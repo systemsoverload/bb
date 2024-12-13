@@ -1,8 +1,8 @@
 import os
 import shlex
 from subprocess import STDOUT, CalledProcessError, check_output
-from tempfile import NamedTemporaryFile
 from typing import List, Optional
+from tempfile import NamedTemporaryFile
 
 from rich.console import Console
 from rich.table import Table
@@ -384,7 +384,6 @@ def get_pr_diff(src_branch: str) -> Result:
 def edit_tmp_file(contents: str = "") -> Result:
     """Open a tempfile with git's configured editor and return the value written when saving/closing.
     Returns a tuple of (title, description) split on '------'."""
-    from tempfile import NamedTemporaryFile
 
     try:
         # Get the configured editor using GitCommand
@@ -400,7 +399,7 @@ def edit_tmp_file(contents: str = "") -> Result:
             if contents:
                 fp.write(contents.encode("utf-8"))
             fp.close()
-            out = check_output(
+            check_output(
                 shlex.split(edit_cmd), universal_newlines=True, stderr=STDOUT
             )
 

@@ -1,6 +1,5 @@
 """Pull request detail screen module"""
 
-from typing import List
 
 from textual import log, work
 from textual.app import ComposeResult
@@ -11,8 +10,6 @@ from textual.widgets import Footer, Header, Markdown, Static
 from textual.worker import Worker, get_current_worker
 
 from bb.tui.screens.base import BaseScreen
-from bb.tui.types import FileDiffType
-from bb.typeshed import Result
 
 
 class PRDetailScreen(BaseScreen):
@@ -150,13 +147,13 @@ class PRDetailScreen(BaseScreen):
         except Exception as e:
             if not worker.is_cancelled:
 
-                def handle_error():
+                def handle_error(e):
                     self.query_one("#diffs_container").loading = False
                     self.notify(
                         f"Error loading diffs: {str(e)}", severity="error", timeout=1
                     )
 
-                self.app.call_from_thread(handle_error)
+                self.app.call_from_thread(handle_error, e)
 
     @work(thread=True)
     def load_pr_details(self) -> None:

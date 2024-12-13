@@ -1,7 +1,6 @@
 """Main TUI application class"""
 
 from textual.app import App
-from textual.binding import Binding
 
 from bb.tui.screens import PRDetailScreen, PRDiffScreen, PRListScreen
 from bb.tui.state import PRState

@@ -1,6 +1,5 @@
-import os
 from subprocess import CalledProcessError
-from unittest import TestCase, mock
+from unittest import mock
 
 import pytest
 
@@ -14,13 +13,11 @@ from bb.core.git import (
     delete_branch,
     delete_tag,
     diff,
-    fetch,
     get_config,
     get_current_branch,
     get_current_repo_slug,
     is_git_repo,
     list_tags,
-    pull,
     push,
     rename_branch,
     set_config,
