@@ -214,6 +214,7 @@ class BaseModel(ABC):
     """Abstract base model for Bitbucket domain objects"""
 
     # Class-level constants
+    BASE_API_INTERNAL_URL: ClassVar[str] = "https://api.bitbucket.org/internal"
     BASE_API_URL: ClassVar[str] = "https://api.bitbucket.org/2.0"
     BASE_WEB_URL: ClassVar[str] = "https://bitbucket.org"
 

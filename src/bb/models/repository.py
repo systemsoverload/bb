@@ -1,11 +1,23 @@
 """Repository model and related collection classes"""
 
 from dataclasses import dataclass
-from typing import Dict, List, Optional, Self
+from typing import Dict, List, Optional, Self, Set
 
 from bb.models.base import BaseModel
-from bb.tui.types import PullRequestType
-from bb.typeshed import Ok, Result, User
+from bb.tui.types import PullRequestType, UserType
+from bb.typeshed import Ok, Result
+
+@dataclass
+class DefaultDescription:
+    """Default title and description template for a pull request"""
+
+    title: str
+    description: str
+    headers: dict
+
+    def format_for_editor(self) -> str:
+        """Format the description for editing in a temporary file"""
+        return f"{self.title}\n------\n{self.description}"
 
 
 @dataclass
@@ -75,7 +87,7 @@ class PullRequestCollection:
         source_branch: str,
         dest_branch: str,
         description: str = "",
-        reviewers: List[User] = None,
+        reviewers: List[UserType] = [],
     ) -> Result[PullRequestType, Exception]:
         """Create a new pull request"""
         data = {
@@ -89,12 +101,21 @@ class PullRequestCollection:
         result = self.repository.client().post(
             f"{self.repository.api_detail_url}/pullrequests", json=data
         )
+
         if result.is_err():
             return result
 
+        result = result.unwrap()
         from bb.models import PullRequest
 
-        return Ok(PullRequest.from_api_response(result.unwrap()))
+        # Manually patch the repo data from the local instance to avoid fetching API data
+        # we already have
+        result.unwrap()["repository"] = {
+            "workspace": {"slug": self.repository.workspace},
+            "slug": self.repository.slug,
+        }
+
+        return Ok(PullRequest.from_api_response(result))
 
 
 @dataclass
@@ -137,6 +158,76 @@ class Repository(BaseModel):
             return result
 
         return Ok(cls.from_api_response(result.unwrap()))
+
+    def get_default_description(
+        self, src_branch: str, dest_branch: str
+    ) -> Result[DefaultDescription, Exception]:
+        """Get the default PR description template for this repository
+
+        Args:
+            src_branch: Source branch name
+            dest_branch: Destination branch name
+
+        Returns:
+            DefaultDescription containing template title and description
+        """
+        # TODO - push this into the default description class? Delete the class?
+        url = (
+            f"{self.BASE_API_INTERNAL_URL}/repositories"
+            f"/{self.workspace}/{self.slug}"
+            f"/pullrequests/default-messages/{src_branch}%0D{dest_branch}?raw=true"
+        )
+
+        result = self.client().get(url)
+        if result.is_err():
+            return result
+
+        return Ok(DefaultDescription(**result.unwrap()))
+
+    def get_effective_reviewers(
+        self, src_branch: str, dest_branch: str
+    ) -> Result[Set[UserType], Exception]:
+        """Given a src and destination branch, query both the effective reviewers and codeowners
+        returning a unified set of 'effective reviewers'"""
+        users: Set[UserType] = set()
+
+        # Default reviewers
+        dr_url = f"{self.BASE_API_URL}/repositories/{self.workspace}/{self.slug}/effective-default-reviewers"
+        dr_result = self.client().get(dr_url)
+
+        if dr_result.is_err():
+            return dr_result
+
+        from bb.models import User
+
+        [users.add(User.from_api_response(u.get('user'))) for u in dr_result.unwrap().get('values')]
+
+        # CODEOWNERS
+        co_url = f"{self.BASE_API_INTERNAL_URL}/repositories/bitbucket/core/codeowners/{src_branch}..{dest_branch}"
+
+        co_result = self.client().get(co_url)
+
+        if co_result.is_err():
+            return co_result
+
+        [users.add(User.from_api_response(u)) for u in co_result.unwrap()]
+
+        return Ok(users)
+
+    def get_recommended_reviewers(self, src_branch, dest_branch) -> Result[Set[UserType], Exception]:
+        users: Set[UserType] = set()
+
+        rr_url = f"{self.BASE_API_INTERNAL_URL}/repositories/{self.workspace}/{self.slug}/recommended-reviewers"
+        rr_result = self.client().get(rr_url)
+
+        if rr_result.is_err():
+            return rr_result
+
+        from bb.models import User
+
+        [users.add(User.from_api_response(u)) for u in rr_result.unwrap()]
+
+        return Ok(users)
 
     @classmethod
     def from_api_response(cls, data: Dict) -> "Repository":

@@ -14,6 +14,7 @@ from bb.core.git import (
 from bb.exceptions import GitPushRejectedException, IPWhitelistException
 from bb.models import Repository, User
 from bb.utils import repo_context_command
+from bb.live_table import SelectableRow, generate_live_table
 
 
 @click.group()
@@ -132,46 +133,47 @@ def create(repo_slug, close_source_branch, src, dest):
 
     # Generate default description
     with Console().status("Generating PR Description"):
-        desc_result = repo.pullrequests.get_default_description(src, dest).unwrap()
+        default_desc = repo.get_default_description(src, dest).unwrap()
         try:
             title, description = edit_tmp_file(
-                f"{desc_result['title']}\n------\n{desc_result['description']}"
+                default_desc.format_for_editor()
             ).unwrap()
         except ValueError:
             print("[bold red]Aborting due to empty description")
             return
 
-    reviewers = []
-    with Console().status("Calculating CODEOWNERS"):
-        code_owners_result = repo.pullrequests.get_codeowners(src, dest).unwrap()
-        code_owners = code_owners_result.json()
-        reviewers.extend(code_owners)
 
-    with Console().status("Calculating recommended reviewers"):
-        recommended_result = repo.pullrequests.get_recommended_reviewers().unwrap()
-        recommended_reviewers = recommended_result.json()
+    # Fetch 'effective_reviewers' which should be the total set of default reviewers
+    # and CODEOWNERS defined reviewers - pre-selected, and some number of recommended reviewers - un-selected.
+    # Generate a list of `live_table` rows that have all of these users pre-selected
+    with Console().status("Calculating effective reviewers"):
+        effective_reviewers = repo.get_effective_reviewers(src, dest).unwrap()
+        # recommended_reviewers = recommended_result.json()
 
-    headers = ["name"]
+    with Console().status("Fetching recommended reviewers"):
+        recommended_reviewers = repo.get_recommended_reviewers(src, dest).unwrap()
+
     rows = []
 
-    # Process reviewers for selection
-    owner_names = [c["display_name"] for c in code_owners]
     for rev in recommended_reviewers:
-        if rev["display_name"] not in owner_names:
-            name = Text(rev["display_name"])
-            name.apply_meta({"uuid": rev["uuid"]})
+        # Look ahead into effective reviewers, if the user is already in there, dont add them
+        if rev not in effective_reviewers and rev.uuid != User.from_current_config().uuid:
+            name = Text(rev.display_name)
+            name.apply_meta({"uuid": rev.uuid})
             rows.append(SelectableRow([name], selected=False))
 
-    for co in code_owners:
-        name = Text(co["display_name"], style="bold magenta")
-        name.apply_meta({"uuid": co["uuid"]})
-        rows.append(SelectableRow([name], selected=True))
+    # Effective reviewers should be added by default
+    for er in effective_reviewers:
+        if er.uuid != User.from_current_config().uuid:
+            name = Text(er.display_name, style="bold magenta")
+            name.apply_meta({"uuid": er.uuid})
+            rows.append(SelectableRow([name], selected=True))
 
     selected_reviewers = [
         User(display_name=u[0].plain, uuid=u[0].spans[0].style.meta["uuid"])
         for u in generate_live_table(
             "\n\n[bold]Select Reviewers[/bold]\n(space to select, enter to submit)",
-            headers,
+            ["name"],
             rows,
         )
     ]

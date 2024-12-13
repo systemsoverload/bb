@@ -1,6 +1,8 @@
 from dataclasses import dataclass, field
 from typing import Dict, List, Optional, Self
 
+from requests.exceptions import RetryError
+
 from bb.core.config import BBConfig
 from bb.models.base import BaseModel, BitbucketClient
 from bb.tui.types import RepositoryType
@@ -17,6 +19,7 @@ class UserStatus:
     has_2fa_enabled: bool
     app_password_preview: str  # First 4 chars + asterisks
     scopes: List[str]
+    uuid: str
 
     def format_message(self) -> List[str]:
         """Format the status as a list of message lines"""
@@ -76,6 +79,14 @@ class User(BaseModel):
         )
 
     @classmethod
+    def from_current_config(cls) -> Self:
+        conf = BBConfig()
+        return cls(
+            uuid=conf.get("auth.uuid"),
+            display_name=conf.get("auth.username")
+        )
+
+    @classmethod
     def validate_credentials(
         cls, username: str, app_password: str
     ) -> Result[UserStatus, Exception]:
@@ -89,12 +100,11 @@ class User(BaseModel):
             return result
 
         # Get response data
-        raw_response = result.unwrap()
-        user_data = raw_response
+        user_data = result.unwrap()
 
         # Create status object with provided credentials
         app_password_preview = f"{app_password[0:4]}{'*' * (len(app_password) - 4)}"
-        scopes = raw_response["headers"]["X-Oauth-Scopes"].split(",")
+        scopes = user_data["headers"]["X-Oauth-Scopes"].split(",")
 
         return Ok(
             UserStatus(
@@ -106,6 +116,7 @@ class User(BaseModel):
                 has_2fa_enabled=user_data.get("has_2fa_enabled", False),
                 app_password_preview=app_password_preview,
                 scopes=scopes,
+                uuid=user_data.get("uuid", ""),
             )
         )
 
@@ -138,6 +149,7 @@ class User(BaseModel):
                 has_2fa_enabled=user_data.get("has_2fa_enabled", False),
                 app_password_preview=app_password_preview,
                 scopes=scopes,
+                uuid=user_data.get("uuid", "")
             )
         )
 
@@ -168,3 +180,6 @@ class User(BaseModel):
 
     def __str__(self) -> str:
         return f"{self.display_name} ({self.nickname or self.uuid})"
+
+    def __hash__(self):
+        return hash(self.uuid)

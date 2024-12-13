@@ -82,7 +82,7 @@ class PullRequest(BaseModel):
             comment_count=data.get("comment_count", 0),
             branch=data["source"]["branch"]["name"],
             created=cls.format_date(data["created_on"]),
-            reviewers=[r["user"]["display_name"] for r in data.get("reviewers", [])],
+            reviewers=[r["display_name"] for r in data.get("reviewers", [])],
             source_commit=data.get("source", {}).get("commit", {}).get("hash"),
             destination_commit=data.get("destination", {})
             .get("commit", {})

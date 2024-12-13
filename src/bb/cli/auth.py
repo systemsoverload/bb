@@ -41,6 +41,7 @@ def login(username, app_password):
         conf.update("auth.username", username)
         conf.update("auth.app_password", app_password)
         conf.update("auth.account_status", status.account_status)
+        conf.update("auth.uuid", status.uuid)
         conf.write()
 
         print(
