@@ -1,6 +1,6 @@
 """Version information for bb CLI - consumed by pyproject.toml for package versioning"""
 
-__version__ = "0.1.2"
+__version__ = "0.2.0"
 
 
 def get_user_agent():
