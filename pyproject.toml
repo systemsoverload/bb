@@ -1,5 +1,5 @@
 [project]
-name = "bb"
+name = "bitbucket-cloud-cli"
 description = "Atlassian Bitbucket Cloud CLI"
 dynamic = ["version"]
 authors = [
