@@ -8,10 +8,6 @@ from textual.binding import Binding
 from textual.widgets import DataTable, Footer, Header
 from textual.worker import Worker, get_current_worker
 
-from bb.core.api import WEB_BASE_URL, get_prs
-from bb.core.config import BBConfig
-from bb.exceptions import IPWhitelistException
-from bb.models import PullRequest
 from bb.tui.screens.base import BaseScreen
 
 
@@ -21,13 +17,12 @@ class PRListScreen(BaseScreen):
     BINDINGS = [
         Binding("j", "cursor_down", "Down", show=True),
         Binding("k", "cursor_up", "Up", show=True),
-        Binding("v", "view_details", "View Details", show=True),
+        Binding("return", "view_details", "View Details", show=True),
         Binding("D", "view_diff", "View Diff", show=True),
         Binding("r", "refresh", "Refresh", show=True),
         Binding("a", "show_all", "Show All PRs", show=True),
         Binding("m", "show_mine", "Show My PRs", show=True),
         Binding("n", "show_reviewing", "Show PRs to Review", show=True),
-        Binding("/", "search", "Search", show=True),
         Binding("q", "quit", "Quit", show=True),
     ]
 
@@ -57,6 +52,13 @@ class PRListScreen(BaseScreen):
         # Start loading PRs
         self.load_prs()
 
+    def on_data_table_row_selected(self, event: DataTable.RowSelected) -> None:
+        """Handle row selection (enter key) in DataTable"""
+        if self.state.prs:
+            current_row = event.cursor_row
+            self.state.set_current_pr(self.state.prs[current_row])
+            self.app.push_screen("pr_detail")
+
     @work(exclusive=True, thread=True)
     def load_prs(self) -> None:
         """Load pull requests in background thread"""
@@ -77,49 +79,31 @@ class PRListScreen(BaseScreen):
 
             self.app.call_from_thread(self.notify, filter_msg, timeout=1)
 
-            # Get configuration for BB API
-            conf = BBConfig()
-            uuid = f'"{conf.get("auth.uuid")}"'
+            # Use PullRequestCollection with new query builder
+            prs_result = self.state.repo.pullrequests.list(
+                _all=self.current_filter == "_all",
+                reviewing=self.current_filter == "reviewing",
+                mine=self.current_filter == "mine",
+            )
 
-            # Construct query based on current filter
-            q = {
-                "_all": 'state="OPEN"',
-                "mine": f'state="OPEN" AND author.uuid={uuid}',
-                "reviewing": f'state="OPEN" AND reviewers.uuid={uuid}',
-            }[self.current_filter]
-
-            # Fetch PRs
-            prs_result = get_prs(self.state.repo_slug, **{self.current_filter: True})
             if prs_result.is_err():
-                error = prs_result.unwrap_err()
-                if isinstance(error, IPWhitelistException):
-                    self.app.call_from_thread(
-                        self.notify,
-                        "IP not whitelisted. Please check your Bitbucket settings.",
-                        severity="error",
-                    )
-                else:
-                    self.app.call_from_thread(
-                        self.notify,
-                        f"Error loading PRs: {str(error)}",
-                        severity="error",
-                    )
+                self.app.call_from_thread(
+                    self.notify,
+                    f"Error loading PRs: {str(prs_result.unwrap_err())}",
+                    severity="error",
+                )
                 return
 
-            prs_data = prs_result.unwrap()
+            prs = prs_result.unwrap()
             if not worker.is_cancelled:
-                if prs_data:
-                    # Update state and table
-                    self.state.prs = [
-                        PullRequest.from_api_response(pr, self.state.repo_slug)
-                        for pr in prs_data
-                    ]
+                if prs:
+                    self.state.prs = prs
 
                     def update_table():
                         table.clear()
                         for pr in self.state.prs:
                             table.add_row(
-                                f"[link={WEB_BASE_URL}/{self.state.repo_slug}/pull-requests/{pr.id}]{pr.id}[/link]",
+                                f"[link={pr.web_url}]{pr.id}[/link]",
                                 pr.title,
                                 pr.author,
                                 pr.status,

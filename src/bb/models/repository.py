@@ -1,12 +1,11 @@
 """Repository model and related collection classes"""
 
 from dataclasses import dataclass
-from typing import List, Optional
+from typing import Dict, List, Optional, Self
 
-from bb.exceptions import IPWhitelistException
-from bb.models import PullRequest, Repository
 from bb.models.base import BaseModel
-from bb.typeshed import Err, Ok, Result, User
+from bb.tui.types import PullRequestType
+from bb.typeshed import Ok, Result, User
 
 
 @dataclass
@@ -18,51 +17,48 @@ class PullRequestCollection:
 
     def list(
         self, _all: bool = False, reviewing: bool = False, mine: bool = False
-    ) -> Result[List[PullRequest], Exception]:
+    ) -> Result[List[PullRequestType], Exception]:
         """List pull requests with optional filters"""
-        uuid = f'"{self.repository.client().config.get("auth.uuid")}"'
-        q = None
-        if _all:
-            q = 'state="OPEN"'
-        elif reviewing:
-            q = f'state="OPEN" AND reviewers.uuid={uuid}'
-        elif mine:
-            q = f'state="OPEN" AND author.uuid={uuid}'
+        # Build query params based on filter type
+        from bb.models import PullRequest
 
-        params = {
-            "fields": ",".join(
-                [
-                    "+values.participants",
-                    "+values.description",
-                    "-values.summary",
-                    "-values.links",
-                    "+values.source",
-                    "-values.participants.links",
-                ]
-            ),
-            "pagelen": 25,
-        }
-        if q:
-            params["q"] = q
+        query_params = {}
+        if _all:
+            query_params["state"] = "OPEN"
+        elif reviewing:
+            query_params.update(
+                {"state": "OPEN", "reviewers_uuid": self.repository.client().user_uuid}
+            )
+        elif mine:
+            query_params.update(
+                {"state": "OPEN", "author_uuid": self.repository.client().user_uuid}
+            )
 
         result = self.repository.client().get(
-            f"{self.repository.api_detail_url}/pullrequests", params=params
+            f"{self.repository.api_detail_url}/pullrequests",
+            model_cls=PullRequest,
+            query_params=query_params,
+            params={"pagelen": 25},
         )
 
         if result.is_err():
             return result
 
-        from bb.models import PullRequest
+        # Add repository info to each PR data
+        pr_data_list = result.unwrap()["values"]
+        for pr_data in pr_data_list:
+            pr_data["repository"] = {
+                "workspace": {"slug": self.repository.workspace},
+                "slug": self.repository.slug,
+            }
 
-        return Ok(
-            [
-                PullRequest.from_api_response(pr_data, self.repository)
-                for pr_data in result.unwrap()["values"]
-            ]
-        )
+        return Ok([PullRequest.from_api_response(pr_data) for pr_data in pr_data_list])
 
-    def get(self, id: int) -> Result["PullRequest"]:
+    def get(self, id: int) -> Result[PullRequestType, Exception]:
         """Get a specific pull request by ID"""
+        from textual import log
+
+        log.error(self.repository.api_detail_url)
         result = self.repository.client().get(
             f"{self.repository.api_detail_url}/pullrequests/{id}"
         )
@@ -71,7 +67,7 @@ class PullRequestCollection:
 
         from bb.models import PullRequest
 
-        return Ok(PullRequest.from_api_response(result.unwrap(), self.repository))
+        return Ok(PullRequest.from_api_response(result.unwrap()))
 
     def create(
         self,
@@ -80,7 +76,7 @@ class PullRequestCollection:
         dest_branch: str,
         description: str = "",
         reviewers: List[User] = None,
-    ) -> Result["PullRequest"]:
+    ) -> Result[PullRequestType, Exception]:
         """Create a new pull request"""
         data = {
             "title": title,
@@ -98,7 +94,7 @@ class PullRequestCollection:
 
         from bb.models import PullRequest
 
-        return Ok(PullRequest.from_api_response(result.unwrap(), self.repository))
+        return Ok(PullRequest.from_api_response(result.unwrap()))
 
 
 @dataclass
@@ -131,7 +127,7 @@ class Repository(BaseModel):
         return PullRequestCollection(self)
 
     @classmethod
-    def get_by_full_slug(cls, full_slug: str) -> Result[Repository]:
+    def get_by_full_slug(cls, full_slug: str) -> Result[Self, Exception]:
         """Fetch a repository by its full slug"""
         workspace, slug = full_slug.split("/")
         repo = cls(workspace=workspace, slug=slug)
@@ -141,3 +137,36 @@ class Repository(BaseModel):
             return result
 
         return Ok(cls.from_api_response(result.unwrap()))
+
+    @classmethod
+    def from_api_response(cls, data: Dict) -> "Repository":
+        """Create Repository instance from API response data"""
+        # Handle both full API responses and nested repository data
+        workspace_slug = None
+        repo_slug = None
+        # data = {"workspace": {"slug": workspace}, "slug": slug}
+        # Try to get workspace from various possible locations in the response
+        workspace_data = data.get("workspace", {})
+        if isinstance(workspace_data, dict):
+            workspace_slug = workspace_data.get("slug")
+        elif isinstance(workspace_data, str):
+            workspace_slug = workspace_data
+
+        # Try to get repo slug from various possible locations
+        repo_slug = data.get("slug")
+        if not repo_slug and "/" in (data.get("full_name", "") or ""):
+            # Handle cases where we get full_name instead
+            workspace_slug, repo_slug = data["full_name"].split("/")
+
+        if not workspace_slug or not repo_slug:
+            raise ValueError(
+                f"Could not determine repository details from data: {data}"
+            )
+
+        return cls(
+            workspace=workspace_slug,
+            slug=repo_slug,
+            name=data.get("name"),
+            description=data.get("description"),
+            is_private=data.get("is_private", True),
+        )

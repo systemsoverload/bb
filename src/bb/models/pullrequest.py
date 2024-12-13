@@ -2,15 +2,30 @@
 
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Self
 
-from bb.models import BaseModel, FileDiff, Repository
+from bb.models.base import BaseModel
+from bb.models.repository import Repository
+from bb.tui.types import FileDiffType
 from bb.typeshed import Ok, Result
 
 
 @dataclass
 class PullRequest(BaseModel):
     """Represents a pull request with its key attributes"""
+
+    DEFAULT_FIELDS = [
+        "values.repository",
+        "values.participants",
+        "values.description",
+        "values.source",
+    ]
+
+    EXCLUDED_FIELDS = [
+        "values.summary",
+        "values.links",
+        "values.participants.links",
+    ]
 
     id: int
     title: str
@@ -32,30 +47,48 @@ class PullRequest(BaseModel):
         return "pullrequests"
 
     @classmethod
-    def from_api_response(cls, pr_data: Dict, repository: Repository) -> "PullRequest":
+    def from_api_response(cls, data: Dict) -> Self:
         """Create a PullRequest instance from API response data"""
+        from bb.models import Repository
+
+        repo_info = data.get("repository", {})
+        if not repo_info:
+            workspace = (
+                data.get("source", {})
+                .get("repository", {})
+                .get("workspace", {})
+                .get("slug")
+            )
+            slug = data.get("source", {}).get("repository", {}).get("slug")
+            if workspace and slug:
+                repo_info = {"workspace": {"slug": workspace}, "slug": slug}
+
+        repository = Repository.from_api_response(repo_info) if repo_info else None
+        if not repository:
+            raise ValueError("Could not determine repository from PR data")
+
         return cls(
-            id=pr_data["id"],
-            title=pr_data["title"],
-            author=pr_data["author"]["display_name"],
-            description=pr_data.get("description", ""),
+            id=data["id"],
+            title=data["title"],
+            author=data["author"]["display_name"],
+            description=data.get("description", ""),
             status="Approved"
-            if any(p["approved"] for p in pr_data.get("participants", []))
+            if any(p["approved"] for p in data.get("participants", []))
             else "Open",
             approvals=[
                 p["user"]["display_name"]
-                for p in pr_data.get("participants", [])
+                for p in data.get("participants", [])
                 if p["approved"]
             ],
-            comments=len(pr_data.get("comments", [])),
-            branch=pr_data["source"]["branch"]["name"],
-            created=cls.format_date(pr_data["created_on"]),
-            reviewers=[r["user"]["display_name"] for r in pr_data.get("reviewers", [])],
-            source_commit=pr_data.get("source", {}).get("commit", {}).get("hash"),
-            destination_commit=pr_data.get("destination", {})
+            comments=len(data.get("comments", [])),
+            branch=data["source"]["branch"]["name"],
+            created=cls.format_date(data["created_on"]),
+            reviewers=[r["user"]["display_name"] for r in data.get("reviewers", [])],
+            source_commit=data.get("source", {}).get("commit", {}).get("hash"),
+            destination_commit=data.get("destination", {})
             .get("commit", {})
             .get("hash"),
-            links=pr_data.get("links", {}),
+            links=data.get("links", {}),
             repository=repository,
         )
 
@@ -69,19 +102,18 @@ class PullRequest(BaseModel):
         """Get API URL for this specific pull request"""
         return f"{self.repository.api_detail_url}/pullrequests/{self.id}"
 
-    def get_diff(self) -> Result[List[FileDiff], Exception]:
+    def get_diff(self) -> Result[List[FileDiffType], Exception]:
         """Get the pull request diff from the Bitbucket API"""
         from bb.models import FileDiff
 
-        result = self.client().get(
-            f"{self.api_detail_url}/diff", headers={"Accept": "text/plain"}
+        result = (
+            self.client()
+            .get(f"{self.api_detail_url}/diff", headers={"Accept": "text/plain"})
+            .unwrap()
         )
 
-        if result.is_err():
-            return result
-
         # Parse the raw diff content into FileDiff objects
-        diff_content = result.unwrap()
+        diff_content = result
         file_diffs: List[FileDiff] = []
         current_file: Optional[FileDiff] = None
 

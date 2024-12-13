@@ -1,10 +1,11 @@
 from dataclasses import dataclass, field
-from datetime import datetime
 from typing import Dict, List, Optional
+
+from bb.models.base import BaseModel
 
 
 @dataclass
-class FileDiff:
+class FileDiff(BaseModel):
     """Represents a single file's diff content and statistics"""
 
     filename: str
@@ -15,8 +16,11 @@ class FileDiff:
     content_type: Optional[str] = None
     status: Optional[str] = None
 
-    def add_line(self, line: str):
-        """Add a line to the diff and update statistics"""
+    @classmethod
+    def resource_path(cls) -> str:
+        return "diff"  # Not actually used since diffs are accessed via PR
+
+    def add_line(self, line: str) -> None:
         self.lines.append(line)
         if line.startswith("+") and not line.startswith("+++"):
             self.stats["additions"] += 1
@@ -25,19 +29,14 @@ class FileDiff:
 
     @property
     def content(self) -> str:
-        """Get the complete diff content"""
         return "\n".join(self.lines)
 
     @property
     def stats_text(self) -> str:
-        """Get a formatted string of the diff statistics"""
         return f"+{self.stats['additions']} -{self.stats['deletions']}"
 
-
-def format_date(date_str: str) -> str:
-    """Format date string from API response"""
-    try:
-        date = datetime.fromisoformat(date_str.replace("Z", "+00:00"))
-        return date.strftime("%Y-%m-%d %H:%M:%S UTC")
-    except (ValueError, AttributeError):
-        return date_str
+    @property
+    def web_url(self) -> str:
+        # TODO -  FileDiff doesn't have a direct web URL without context
+        # Could be enhanced if we store PR reference
+        return ""

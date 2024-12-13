@@ -1,7 +1,6 @@
 """Base screen functionality for TUI screens"""
 
 from textual.screen import Screen
-from textual.widgets import Footer, Header
 
 from bb.tui.state import PRState
 from bb.tui.types import AppType

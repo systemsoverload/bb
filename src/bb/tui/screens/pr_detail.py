@@ -101,9 +101,7 @@ class PRDetailScreen(BaseScreen):
                 setattr, self.query_one("#diffs_container"), "loading", True
             )
 
-            diff_result: Result[List[FileDiffType], Exception] = (
-                self.state.current_pr.get_pr_diff()
-            )
+            diff_result = self.state.current_pr.get_diff()
             if diff_result.is_err():
 
                 def handle_error():
@@ -111,7 +109,7 @@ class PRDetailScreen(BaseScreen):
                     self.notify(
                         f"Error loading diff: {diff_result.unwrap_err()}",
                         severity="error",
-                        timeout=1,
+                        timeout=10,
                     )
 
                 self.app.call_from_thread(handle_error)

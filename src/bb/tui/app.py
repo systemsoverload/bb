@@ -29,7 +29,6 @@ class PRReviewApp(App[None]):
     }
 
     .pr-meta {
-        width: 30%;
         height: 100%;
         padding: 1;
         border: solid $primary;
@@ -73,9 +72,8 @@ class PRReviewApp(App[None]):
         from textual.logging import TextualHandler
 
         logging.basicConfig(level=logging.DEBUG, handlers=[TextualHandler()])
-
-        # TODO - replace this with an instance of Repository model
-        self.state = PRState(repo_slug)
+        ws, s = repo_slug.split("/")
+        self.state = PRState(workspace_slug=ws, repo_slug=s)
 
     def on_mount(self) -> None:
         """Mount the initial screen"""

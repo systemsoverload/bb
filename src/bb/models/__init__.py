@@ -2,10 +2,10 @@ from dataclasses import dataclass
 from enum import Enum, auto
 from typing import Dict, Optional
 
-from .base import BaseModel  # noqa
-from .file_diff import FileDiff  # noqa
-from .pullrequest import PullRequest  # noqa
-from .repository import Repository  # noqa
+from .base import BaseModel, BitbucketClient
+from .filediff import FileDiff
+from .pullrequest import PullRequest
+from .repository import PullRequestCollection, Repository
 
 
 class ViewState(Enum):
@@ -36,11 +36,12 @@ class Branch:
 
 
 __all__ = [
+    "BaseModel",
+    "Branch",
+    "BitbucketClient",
     "FileDiff",
     "PullRequest",
-    "Branch",
-    "User",
-    "ViewState",
+    "PullRequestCollection",
     "Repository",
-    "BaseModel",
+    "User",
 ]
