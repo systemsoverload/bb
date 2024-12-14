@@ -2,7 +2,6 @@
 
 from typing import Literal
 
-from rich.text import Text
 from textual import work
 from textual.app import ComposeResult
 from textual.binding import Binding
@@ -10,7 +9,7 @@ from textual.widgets import Footer, Header
 from textual.worker import Worker, get_current_worker
 
 from bb.tui.screens.base import BaseScreen
-from bb.tui.widgets import SelectableTable, StatDisplay
+from bb.tui.widgets import SelectableTable
 
 
 class PRListScreen(BaseScreen):

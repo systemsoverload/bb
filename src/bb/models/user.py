@@ -1,7 +1,6 @@
 from dataclasses import dataclass, field
 from typing import Dict, List, Optional, Self
 
-from requests.exceptions import RetryError
 
 from bb.core.config import BBConfig
 from bb.models.base import BaseModel, BitbucketClient

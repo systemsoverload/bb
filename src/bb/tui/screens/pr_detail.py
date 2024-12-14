@@ -4,11 +4,12 @@ from textual import work
 from textual.app import ComposeResult
 from textual.binding import Binding
 from textual.containers import Container, Horizontal, ScrollableContainer, Vertical
-from textual.widgets import Footer, Header, Markdown, Static, Collapsible
+from textual.widgets import Footer, Header, Markdown, Static
 from textual.worker import Worker, get_current_worker
 
 from bb.tui.screens.base import BaseScreen
 from bb.tui.widgets import FileDiff
+
 
 class SidebarMeta(Static):
     """PR metadata sidebar component"""
@@ -49,6 +50,7 @@ class SidebarMeta(Static):
         else:
             self.remove_class("collapsed")
 
+
 class PRTitleWidget(Static):
     """Widget for displaying PR title"""
 
@@ -67,7 +69,7 @@ class PRDetailScreen(BaseScreen):
         Binding("c", "comment", "Comment", show=True),
         Binding("q", "back", "Back", show=True),
         Binding("o", "open_browser", "Open in Browser", show=True),
-        Binding("]", "toggle_meta", "Toggle Metadata", show=True)
+        Binding("]", "toggle_meta", "Toggle Metadata", show=True),
     ]
 
     CSS_PATH = "../css/pr_detail.tcss"

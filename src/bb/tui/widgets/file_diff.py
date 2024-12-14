@@ -1,10 +1,8 @@
 """File diff widget with collapsible content"""
 
 from textual.app import ComposeResult
-from textual.containers import Horizontal, Vertical
+from textual.containers import Horizontal
 from textual.widgets import Collapsible, Static
-
-from bb.tui.widgets.stat_display import StatDisplay
 
 
 class DiffContent(Static):

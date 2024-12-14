@@ -78,7 +78,6 @@ class PullRequest(BaseModel):
             if p.get("approved")  # Track who has approved
         ]
 
-
         return cls(
             id=data["id"],
             title=data["title"],
