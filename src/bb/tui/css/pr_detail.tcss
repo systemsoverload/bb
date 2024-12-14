@@ -1,0 +1,97 @@
+.pr-header {
+    dock: top;
+    height: 2;
+    text-style: bold;
+    background: $primary;
+    color: $text;
+    width: 100%;
+}
+
+.pr-title {
+    width: 1fr;
+    content-align: left middle;
+    padding: 0 1;
+}
+
+#pr_stats {
+    dock: right;
+    width: auto;
+    padding: 0 2;
+}
+
+.pr-meta {
+    height: 100%;
+    padding: 1;
+}
+
+.pr-description {
+    padding: 1;
+
+}
+
+#pr-diffs {
+    height: auto;
+    width: 100%;
+    padding: 1;
+}
+
+#diffs_container {
+    height: 1fr;
+    min-height: 0;
+    border: solid $primary-lighten-3;
+    padding: 0;
+    margin: 0;
+    overflow-y: scroll;
+}
+
+
+FileDiff {
+    background: $surface;
+    margin: 0 0 1 0;
+}
+
+FileDiff .header-content {
+    width: 100%;
+    height: auto;
+    background: $boost;
+    color: $text;
+}
+
+FileDiff .filename {
+    color: $text;
+    text-style: bold;
+    margin-right: 1;
+    padding: 0 1;
+    /*  Hack to give us slightly less than 1ch padding  */
+    border: solid $foreground;
+}
+
+FileDiff .diff-collapsible {
+    margin: 0;
+}
+
+FileDiff .diff-collapsible > .-body {
+    padding: 0;
+}
+
+DiffContent {
+    padding: 0;
+}
+
+DiffContent .diff-line {
+    text-align: left;
+    padding: 0;
+}
+
+DiffContent .diff-line--addition {
+    background: rgba(0, 255, 0, 0.1);
+}
+
+DiffContent .diff-line--deletion {
+    background: rgba(255, 0, 0, 0.1);
+}
+
+DiffContent .diff-line--info {
+    background: rgba(0, 0, 255, 0.1);
+    color: $text-muted;
+}

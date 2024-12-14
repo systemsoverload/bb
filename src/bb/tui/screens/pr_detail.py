@@ -11,6 +11,22 @@ from bb.tui.screens.base import BaseScreen
 from bb.tui.widgets import FileDiff, StatDisplay
 
 
+class PRTitleWidget(Static):
+    """Widget for displaying PR title"""
+
+    pass
+
+
+class PRMetaWidget(Static):
+    """Widget for displaying PR metadata"""
+
+    pass
+
+
+class DiffsContainer(ScrollableContainer):
+    pass
+
+
 class PRDetailScreen(BaseScreen):
     """Screen for displaying pull request details"""
 
@@ -23,66 +39,27 @@ class PRDetailScreen(BaseScreen):
         Binding("o", "open_browser", "Open in Browser", show=True),
     ]
 
-    CSS = """
-    .pr-header {
-        dock: top;
-        height: 3;
-        background: $boost;
-        color: $text;
-        padding: 1;
-    }
-
-    #pr_stats {
-        dock: right;
-        padding: 0 2;
-    }
-
-    .pr-meta {
-        height: 100%;
-        padding: 1;
-        border: solid $primary;
-    }
-
-    .pr-description {
-        height: 100%;
-        padding: 1;
-        border: solid $primary;
-    }
-
-    .pr-diffs {
-        width: 100%;
-        padding: 1;
-        border: solid $primary;
-    }
-
-    #diffs_container {
-        height: 1fr;
-        border: solid $primary;
-    }
-    """
+    CSS_PATH = "../css/pr_detail.tcss"
 
     def compose(self) -> ComposeResult:
         """Create child widgets for the screen"""
         yield Header()
         yield Container(
             Horizontal(
-                Static(id="pr_title", classes="pr-title"),
-                StatDisplay(id="pr_stats"),
-                classes="pr-header",
+                PRTitleWidget(id="pr_title", classes="pr-title"), classes="pr-header"
             ),
             Vertical(
                 Horizontal(
                     ScrollableContainer(
-                        Static(id="pr_meta", classes="pr-meta"), id="meta_container"
+                        PRMetaWidget(id="pr_meta", classes="pr-meta"),
+                        id="meta_container",
                     ),
                     ScrollableContainer(
                         Markdown(id="pr_description", classes="pr-description"),
                         id="description_container",
                     ),
                 ),
-                ScrollableContainer(
-                    Vertical(id="pr_diffs", classes="pr-diffs"), id="diffs_container"
-                ),
+                DiffsContainer(id="diffs_container"),
                 classes="pr-container",
             ),
         )

@@ -28,6 +28,13 @@ class PRListScreen(BaseScreen):
         Binding("q", "quit", "Quit", show=True),
     ]
 
+    CSS = """
+        #pr_table {
+            height: 1fr;
+            border: solid $primary;
+        }
+    """
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.current_filter: Literal["_all", "mine", "reviewing"] = "mine"
