@@ -86,37 +86,12 @@ class PRDetailScreen(BaseScreen):
             return
 
         # Clear existing content before loading new data
-        self.query_one("#pr_title").update("")
-        self.query_one("#pr_meta").update("")
-        self.query_one("#pr_description").update("")
-        self.query_one("#pr_diffs").remove_children()
-
-        # Reset stats
-        stats = self.query_one("#pr_stats", StatDisplay)
-        stats.update_stats(
-            additions=0, deletions=0, comments=self.state.current_pr.comment_count
-        )
+        self.query_one(PRTitleWidget).update("foefoefoefoefo")
+        self.query_one(PRMetaWidget).update("")
+        self.query_one(DiffsContainer).remove_children()
 
         self.load_pr_details()
         self.load_pr_diffs()
-
-    def update_pr_stats(self) -> None:
-        """Update the PR statistics display"""
-        if not self.state.current_pr:
-            return
-
-        total_additions = 0
-        total_deletions = 0
-        for diff in self.state.file_diffs:
-            total_additions += diff.stats["additions"]
-            total_deletions += diff.stats["deletions"]
-
-        stats = self.query_one("#pr_stats", StatDisplay)
-        stats.update_stats(
-            additions=total_additions,
-            deletions=total_deletions,
-            comments=self.state.current_pr.comment_count,
-        )
 
     @work(thread=True)
     def load_pr_diffs(self) -> None:
@@ -128,7 +103,7 @@ class PRDetailScreen(BaseScreen):
         if not self.state.current_pr:
 
             def handle_no_pr():
-                self.query_one("#diffs_container").loading = False
+                self.query_one(DiffsContainer).loading = False
                 self.notify("No PR selected", severity="error", timeout=1)
 
             self.app.call_from_thread(handle_no_pr)
@@ -137,14 +112,14 @@ class PRDetailScreen(BaseScreen):
         try:
             # Set loading state
             self.app.call_from_thread(
-                setattr, self.query_one("#diffs_container"), "loading", True
+                setattr, self.query_one(DiffsContainer), "loading", True
             )
 
             diff_result = self.state.current_pr.get_diff()
             if diff_result.is_err():
 
                 def handle_error():
-                    self.query_one("#diffs_container").loading = False
+                    self.query_one(DiffsContainer).loading = False
                     self.notify(
                         f"Error loading diff: {diff_result.unwrap_err()}",
                         severity="error",
@@ -161,7 +136,7 @@ class PRDetailScreen(BaseScreen):
 
                 def update_display():
                     # Clear existing diffs
-                    diffs_container = self.query_one("#pr_diffs", Vertical)
+                    diffs_container = self.query_one(DiffsContainer)
                     diffs_container.remove_children()
 
                     # Add collapsible diff widget for each file
@@ -175,8 +150,7 @@ class PRDetailScreen(BaseScreen):
                             )
                         )
 
-                    self.query_one("#diffs_container").loading = False
-                    self.update_pr_stats()
+                    self.query_one(DiffsContainer).loading = False
 
                 self.app.call_from_thread(update_display)
 
@@ -184,9 +158,9 @@ class PRDetailScreen(BaseScreen):
             if not worker.is_cancelled:
 
                 def handle_error():
-                    self.query_one("#diffs_container").loading = False
+                    self.query_one(DiffsContainer).loading = False
                     self.notify(
-                        f"Error loading diffs: {str(e)}", severity="error", timeout=1
+                        f"Error loading diffs: {str(e)}", severity="error", timeout=10
                     )
 
                 self.app.call_from_thread(handle_error)
@@ -203,14 +177,14 @@ class PRDetailScreen(BaseScreen):
             if not pr:
 
                 def handle_no_pr():
-                    self.notify("No PR selected", severity="error", timeout=1)
+                    self.notify("No PR selected", severity="error", timeout=10)
 
                 self.app.call_from_thread(handle_no_pr)
                 return
 
             def update_display():
                 # Update title
-                self.query_one("#pr_title").update(f"PR #{pr.id}: {pr.title}")
+                self.query_one(PRTitleWidget).update(f"PR #{pr.id}: {pr.title}")
 
                 # Update metadata
                 meta = [
@@ -227,15 +201,11 @@ class PRDetailScreen(BaseScreen):
                     "",
                     f"[link={pr.web_url}]View in Browser[/link]",
                 ]
-                self.query_one("#pr_meta").update("\n".join(meta))
+                self.query_one(PRMetaWidget).update("\n".join(meta))
 
                 # Update description
                 desc = pr.description if pr.description else "*No description provided*"
                 self.query_one("#pr_description", Markdown).update(desc)
-
-                # Update initial stats (comments only at this point)
-                stats = self.query_one("#pr_stats", StatDisplay)
-                stats.update_stats(comments=pr.comment_count)
 
             self.app.call_from_thread(update_display)
 
@@ -278,7 +248,7 @@ class PRDetailScreen(BaseScreen):
 
         if not self.state.current_pr:
             self.app.call_from_thread(
-                self.notify, "No PR selected", severity="error", timeout=1
+                self.notify, "No PR selected", severity="error", timeout=10
             )
             return
 
