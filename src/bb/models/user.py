@@ -81,10 +81,7 @@ class User(BaseModel):
     @classmethod
     def from_current_config(cls) -> Self:
         conf = BBConfig()
-        return cls(
-            uuid=conf.get("auth.uuid"),
-            display_name=conf.get("auth.username")
-        )
+        return cls(uuid=conf.get("auth.uuid"), display_name=conf.get("auth.username"))
 
     @classmethod
     def validate_credentials(
@@ -149,7 +146,7 @@ class User(BaseModel):
                 has_2fa_enabled=user_data.get("has_2fa_enabled", False),
                 app_password_preview=app_password_preview,
                 scopes=scopes,
-                uuid=user_data.get("uuid", "")
+                uuid=user_data.get("uuid", ""),
             )
         )
 
