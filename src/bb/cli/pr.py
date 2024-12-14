@@ -16,6 +16,8 @@ from bb.models import Repository, User
 from bb.utils import repo_context_command
 from bb.live_table import SelectableRow, generate_live_table
 
+console = Console()
+
 
 @click.group()
 def pr():
@@ -81,7 +83,6 @@ def list(repo_slug, _all, mine, reviewing):
             pr.title,
             ",".join(pr.approvals),
         )
-    console = Console()
     console.print(table)
 
 
@@ -112,23 +113,23 @@ def create(repo_slug, close_source_branch, src, dest):
         try:
             src = get_branch(src).unwrap()
         except Exception:
-            print(f"[bold red]Unable to find branch {src}")
+            console.print(f"[bold red]Unable to find branch {src}")
             return
 
     dest = dest or get_default_branch().unwrap()
 
-    print(
+    console.print(
         f"Creating new pull request for [bold blue]{src}[/] into [bold blue]{dest}[/] for {repo_slug}"
     )
     if not get_current_diff_to_main().unwrap():
-        return print("[bold red]Aborting - no changes on local branch")
+        return console.print("[bold red]Aborting - no changes on local branch")
 
     with Console().status("Pushing local branch"):
         try:
             push_branch(src).unwrap()
         except (GitPushRejectedException, IPWhitelistException) as e:
-            print(f"[bold red]Error pushing {src}")
-            print(f"[bold red]{e}")
+            console.print(f"[bold red]Error pushing {src}")
+            console.print(f"[bold red]{e}")
             return
 
     # Generate default description
@@ -139,9 +140,8 @@ def create(repo_slug, close_source_branch, src, dest):
                 default_desc.format_for_editor()
             ).unwrap()
         except ValueError:
-            print("[bold red]Aborting due to empty description")
+            console.print("[bold red]Aborting due to empty description")
             return
-
 
     # Fetch 'effective_reviewers' which should be the total set of default reviewers
     # and CODEOWNERS defined reviewers - pre-selected, and some number of recommended reviewers - un-selected.
@@ -157,7 +157,10 @@ def create(repo_slug, close_source_branch, src, dest):
 
     for rev in recommended_reviewers:
         # Look ahead into effective reviewers, if the user is already in there, dont add them
-        if rev not in effective_reviewers and rev.uuid != User.from_current_config().uuid:
+        if (
+            rev not in effective_reviewers
+            and rev.uuid != User.from_current_config().uuid
+        ):
             name = Text(rev.display_name)
             name.apply_meta({"uuid": rev.uuid})
             rows.append(SelectableRow([name], selected=False))
@@ -188,6 +191,15 @@ def create(repo_slug, close_source_branch, src, dest):
                 reviewers=selected_reviewers,
             )
             pr = result.unwrap()
-            print(f"Successfully created PR - {pr.web_url}")
+            console.print(f"Successfully created PR - {pr.web_url}")
     except Exception as exc:
-        print(f"[bold red]Aborting: {str(exc)}")
+        console.print(f"[bold red]Aborting: {str(exc)}")
+
+
+@pr.command()
+@repo_context_command
+def review(repo_slug):
+    """Interactive TUI for reviewing pull requests"""
+    from bb.tui import review_prs
+
+    review_prs(repo_slug)
