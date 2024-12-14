@@ -7,6 +7,7 @@ from bb.models.base import BaseModel
 from bb.tui.types import PullRequestType, UserType
 from bb.typeshed import Ok, Result
 
+
 @dataclass
 class DefaultDescription:
     """Default title and description template for a pull request"""
@@ -133,6 +134,10 @@ class Repository(BaseModel):
         return "repositories"
 
     @property
+    def full_slug(self) -> str:
+        return f"{self.workspace}/{self.slug}"
+
+    @property
     def api_detail_url(self) -> str:
         """Full API URL for this specific repository"""
         return f"{self.api_url()}/{self.workspace}/{self.slug}"
@@ -200,7 +205,10 @@ class Repository(BaseModel):
 
         from bb.models import User
 
-        [users.add(User.from_api_response(u.get('user'))) for u in dr_result.unwrap().get('values')]
+        [
+            users.add(User.from_api_response(u.get("user")))
+            for u in dr_result.unwrap().get("values")
+        ]
 
         # CODEOWNERS
         co_url = f"{self.BASE_API_INTERNAL_URL}/repositories/bitbucket/core/codeowners/{src_branch}..{dest_branch}"
@@ -214,7 +222,9 @@ class Repository(BaseModel):
 
         return Ok(users)
 
-    def get_recommended_reviewers(self, src_branch, dest_branch) -> Result[Set[UserType], Exception]:
+    def get_recommended_reviewers(
+        self, src_branch, dest_branch
+    ) -> Result[Set[UserType], Exception]:
         users: Set[UserType] = set()
 
         rr_url = f"{self.BASE_API_INTERNAL_URL}/repositories/{self.workspace}/{self.slug}/recommended-reviewers"
