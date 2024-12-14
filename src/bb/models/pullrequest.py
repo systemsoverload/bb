@@ -66,6 +66,19 @@ class PullRequest(BaseModel):
         if not repository:
             raise ValueError("Could not determine repository from PR data")
 
+        participants = data.get("participants", [])
+        reviewers = [
+            p["user"]["display_name"]
+            for p in participants
+            if p.get("role") == "REVIEWER"  # Include all participants as reviewers
+        ]
+        approvals = [
+            p["user"]["display_name"]
+            for p in participants
+            if p.get("approved")  # Track who has approved
+        ]
+
+
         return cls(
             id=data["id"],
             title=data["title"],
@@ -74,15 +87,11 @@ class PullRequest(BaseModel):
             status="Approved"
             if any(p["approved"] for p in data.get("participants", []))
             else "Open",
-            approvals=[
-                p["user"]["display_name"]
-                for p in data.get("participants", [])
-                if p["approved"]
-            ],
+            approvals=approvals,
             comment_count=data.get("comment_count", 0),
             branch=data["source"]["branch"]["name"],
             created=cls.format_date(data["created_on"]),
-            reviewers=[r["display_name"] for r in data.get("reviewers", [])],
+            reviewers=reviewers,
             source_commit=data.get("source", {}).get("commit", {}).get("hash"),
             destination_commit=data.get("destination", {})
             .get("commit", {})
@@ -100,6 +109,12 @@ class PullRequest(BaseModel):
     def api_detail_url(self) -> str:
         """Get API URL for this specific pull request"""
         return f"{self.repository.api_detail_url}/pullrequests/{self.id}"
+
+    def get_merge_restrictions(self) -> Result[Dict, Exception]:
+        """Get merge restrictions for this PR"""
+        return self.client().get(
+            f"{self.BASE_API_INTERNAL_URL}/repositories/{self.repository.full_slug}/pullrequests/{self.id}/merge-restrictions",
+        )
 
     def approve(self) -> Result:
         """Approve this pull request"""

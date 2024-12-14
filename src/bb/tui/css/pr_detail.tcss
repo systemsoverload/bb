@@ -1,6 +1,6 @@
 .pr-header {
     dock: top;
-    height: 2;
+    height: auto;
     text-style: bold;
     background: $primary;
     color: $text;
@@ -8,9 +8,9 @@
 }
 
 .pr-title {
-    width: 1fr;
     content-align: left middle;
-    padding: 0 1;
+    /*  Hack to give us slightly less than 1ch padding  */
+    border: solid $primary;
 }
 
 #pr_stats {
@@ -41,7 +41,7 @@
     border: solid $primary-lighten-3;
     padding: 0;
     margin: 0;
-    overflow-y: scroll;
+    overflow-y: auto;
 }
 
 
@@ -68,6 +68,7 @@ FileDiff .filename {
 
 FileDiff .diff-collapsible {
     margin: 0;
+    padding: 0;
 }
 
 FileDiff .diff-collapsible > .-body {

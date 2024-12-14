@@ -1,6 +1,6 @@
-"""Pull request detail screen with enhanced stats display"""
+from typing import Dict
 
-from textual import log, work
+from textual import work
 from textual.app import ComposeResult
 from textual.binding import Binding
 from textual.containers import Container, Horizontal, ScrollableContainer, Vertical
@@ -8,7 +8,7 @@ from textual.widgets import Footer, Header, Markdown, Static
 from textual.worker import Worker, get_current_worker
 
 from bb.tui.screens.base import BaseScreen
-from bb.tui.widgets import FileDiff, StatDisplay
+from bb.tui.widgets import FileDiff
 
 
 class PRTitleWidget(Static):
@@ -31,8 +31,6 @@ class PRDetailScreen(BaseScreen):
     """Screen for displaying pull request details"""
 
     BINDINGS = [
-        Binding("v", "back_to_list", "Return to List", show=True),
-        Binding("D", "view_diff", "View Diff", show=True),
         Binding("a", "approve", "Approve", show=True),
         Binding("c", "comment", "Comment", show=True),
         Binding("q", "back", "Back", show=True),
@@ -86,7 +84,7 @@ class PRDetailScreen(BaseScreen):
             return
 
         # Clear existing content before loading new data
-        self.query_one(PRTitleWidget).update("foefoefoefoefo")
+        self.query_one(PRTitleWidget).update("")
         self.query_one(PRMetaWidget).update("")
         self.query_one(DiffsContainer).remove_children()
 
@@ -182,9 +180,17 @@ class PRDetailScreen(BaseScreen):
                 self.app.call_from_thread(handle_no_pr)
                 return
 
+            # TODO - `checks` require an extra API call here, but should be merged with restrictions
+            merge_restrictions = None
+            mr_result = pr.get_merge_restrictions()
+
+            if mr_result.is_ok():
+                merge_restrictions = mr_result.unwrap()
+
             def update_display():
-                # Update title
-                self.query_one(PRTitleWidget).update(f"PR #{pr.id}: {pr.title}")
+                # Update title ASAP - defer merge-able status until the follow-up request finishes
+                title = f"PR #{pr.id}: {pr.title}"
+                self.query_one(PRTitleWidget).update(title)
 
                 # Update metadata
                 meta = [
@@ -199,8 +205,28 @@ class PRDetailScreen(BaseScreen):
                     "[bold]Approvals:[/]",
                     *[f"  • {approver}" for approver in pr.approvals],
                     "",
-                    f"[link={pr.web_url}]View in Browser[/link]",
+                    # f"[link={pr.web_url}]View in Browser[/link]",
                 ]
+
+                if merge_restrictions:
+                    can_merge = merge_restrictions.get("can_merge", False)
+                    title = "✅" if can_merge else "⚠️  " + title
+                    self.query_one(PRTitleWidget).update(title)
+
+                    meta.extend([
+                        "[bold]Merge Restrictions:[/]"
+                    ])
+
+                    # Add each restriction status
+                    restrictions = merge_restrictions.get("restrictions", {})
+                    for _, restriction in restrictions.items():
+                        if restriction.get("label"):  # Only show restrictions with labels
+                            meta.append(f"  {format_restriction_status(restriction)}")
+
+                meta.append("")
+                meta.append(f"[link={pr.web_url}]View in Browser[/link]")
+
+
                 self.query_one(PRMetaWidget).update("\n".join(meta))
 
                 # Update description
@@ -214,10 +240,6 @@ class PRDetailScreen(BaseScreen):
                 self.app.call_from_thread(
                     self.notify, f"Error loading PR details: {str(e)}", severity="error"
                 )
-
-    def action_back_to_list(self) -> None:
-        """Return to PR list"""
-        self.app.pop_screen()
 
     def action_view_diff(self) -> None:
         """View PR diff"""
@@ -307,3 +329,12 @@ class PRDetailScreen(BaseScreen):
                     severity="error",
                     timeout=1,
                 )
+
+def format_restriction_status(restriction: Dict) -> str:
+    """Format a restriction's status for display"""
+    status = "✅" if restriction["pass"] else "⚠️ "
+    name = restriction["name"]
+    label = restriction.get("label", "")
+    if label:
+        return f"{status} {name}: {label}"
+    return f"{status} {name}"
